@@ -78,28 +78,7 @@
       margin-top: 2px;
     }
 
-    .bookmarks {
-      margin-top: 12px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-    }
-    .btn-bm {
-      background: #1e293b;
-      border: 1px solid #475569;
-      color: #cbd5e1;
-      border-radius: 6px;
-      padding: 4px 8px;
-      font-size: 11px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .btn-bm:hover {
-      background: #10b981;
-      color: #0f172a;
-      border-color: #10b981;
-      font-weight: 600;
-    }
+
 
     .legend-panel {
       position: absolute;
@@ -178,15 +157,7 @@
       </div>
     </div>
 
-    <div style="margin-top: 12px; font-size: 11px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;">Jump to Iconic Forests:</div>
-    <div class="bookmarks">
-      <button class="btn-bm" onclick="zoomTo(-3.025, 54.345, 14)">Grizedale</button>
-      <button class="btn-bm" onclick="zoomTo(-3.220, 54.605, 14)">Whinlatter</button>
-      <button class="btn-bm" onclick="zoomTo(-3.155, 54.520, 14)">Borrowdale Oaks</button>
-      <button class="btn-bm" onclick="zoomTo(-3.360, 54.505, 14)">Ennerdale</button>
-      <button class="btn-bm" onclick="zoomTo(-3.180, 54.640, 14)">Dodd Wood</button>
-      <button class="btn-bm" onclick="zoomTo(-2.940, 54.375, 14)">Windermere West</button>
-    </div>
+
   </div>
 
   <div class="legend-panel">
@@ -274,9 +245,7 @@
     map.addControl(new maplibregl.NavigationControl(), 'top-right');
     map.addControl(new maplibregl.ScaleControl({ maxWidth: 100, unit: 'metric' }), 'bottom-left');
 
-    function zoomTo(lon, lat, zoom) {
-      map.flyTo({ center: [lon, lat], zoom: zoom, speed: 1.4 });
-    }
+
 
     const popup = new maplibregl.Popup({
       closeButton: false,

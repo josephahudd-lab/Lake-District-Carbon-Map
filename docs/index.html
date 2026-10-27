@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lake District Carbon Map - 862,000 Vector Squares</title>
+  <title>Lake District National Park Carbon Map - 587,390 Vector Squares</title>
   
   <!-- MapLibre GL JS & PMTiles v3 -->
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" />
@@ -31,7 +31,7 @@
     }
     .header-panel h1 {
       margin: 0 0 4px 0;
-      font-size: 18px;
+      font-size: 17px;
       font-weight: 700;
       display: flex;
       align-items: center;
@@ -78,7 +78,62 @@
       margin-top: 2px;
     }
 
-
+    .controls-container {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(51, 65, 85, 0.6);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .control-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      color: #cbd5e1;
+      user-select: none;
+    }
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 36px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #334155;
+      transition: .25s;
+      border-radius: 20px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 14px;
+      width: 14px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .25s;
+      border-radius: 50%;
+    }
+    input:checked + .slider {
+      background-color: #10b981;
+    }
+    input:checked + .slider.slider-amber {
+      background-color: #f59e0b;
+    }
+    input:checked + .slider:before {
+      transform: translateX(16px);
+    }
 
     .legend-panel {
       position: absolute;
@@ -135,29 +190,45 @@
   <div id="map"></div>
 
   <div class="header-panel">
-    <h1><span class="pulse-dot"></span> Lake District Carbon Map</h1>
-    <p>Every 20m woodland canopy square across all 174 tiles (862,439 vector cells) streamed via PMTiles.</p>
+    <h1><span class="pulse-dot"></span> Lake District National Park</h1>
+    <p>Every 20m woodland canopy square strictly within the Lake District National Park (587,390 vector cells) streamed via PMTiles.</p>
     
     <div class="stats-grid">
       <div class="stat-item">
         <div class="stat-label">Total Stored Carbon</div>
-        <div class="stat-val">1,483,238 <span style="font-size:11px; font-weight:normal;">tC</span></div>
+        <div class="stat-val">1,057,770 <span style="font-size:11px; font-weight:normal;">tC</span></div>
       </div>
       <div class="stat-item">
         <div class="stat-label">CO₂ Equivalent</div>
-        <div class="stat-val" style="color:#2dd4bf;">5,438,540 <span style="font-size:11px; font-weight:normal;">tCO₂e</span></div>
+        <div class="stat-val" style="color:#2dd4bf;">3,878,492 <span style="font-size:11px; font-weight:normal;">tCO₂e</span></div>
       </div>
       <div class="stat-item">
-        <div class="stat-label">Forest Canopy Area</div>
-        <div class="stat-val" style="color:#38bdf8;">34,498 <span style="font-size:11px; font-weight:normal;">ha</span></div>
+        <div class="stat-label">Park Canopy Area</div>
+        <div class="stat-val" style="color:#38bdf8;">23,496 <span style="font-size:11px; font-weight:normal;">ha</span></div>
       </div>
       <div class="stat-item">
         <div class="stat-label">Mean Carbon Density</div>
-        <div class="stat-val" style="color:#fbbf24;">43.0 <span style="font-size:11px; font-weight:normal;">tC/ha</span></div>
+        <div class="stat-val" style="color:#fbbf24;">45.0 <span style="font-size:11px; font-weight:normal;">tC/ha</span></div>
       </div>
     </div>
 
-
+    <!-- Interactive Layer Toggles -->
+    <div class="controls-container">
+      <div class="control-row">
+        <label class="switch">
+          <input type="checkbox" id="toggle-squares" checked onchange="toggleLayer('carbon', this.checked)">
+          <span class="slider"></span>
+        </label>
+        <span><strong>20m Carbon Squares</strong> (Toggle On / Off)</span>
+      </div>
+      <div class="control-row">
+        <label class="switch">
+          <input type="checkbox" id="toggle-boundary" checked onchange="toggleLayer('boundary', this.checked)">
+          <span class="slider slider-amber"></span>
+        </label>
+        <span><strong>National Park Boundary</strong> (Gold Outline)</span>
+      </div>
+    </div>
   </div>
 
   <div class="legend-panel">
@@ -173,6 +244,10 @@
       <span>90</span>
       <span>120</span>
       <span>150+</span>
+    </div>
+    <div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(51, 65, 85, 0.6); display: flex; align-items: center; gap: 8px; font-size: 11px; color: #cbd5e1;">
+      <span style="display:inline-block; width: 18px; height: 0px; border-top: 2px dashed #f59e0b;"></span>
+      <span>Lake District Boundary</span>
     </div>
   </div>
 
@@ -191,6 +266,10 @@
             tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
             tileSize: 256,
             attribution: '&copy; Esri, Maxar, Earthstar Geographics'
+          },
+          'boundary_source': {
+            type: 'geojson',
+            data: 'lake_district_boundary.geojson'
           },
           'carbon_source': {
             type: 'vector',
@@ -233,10 +312,20 @@
               'line-width': 0.5,
               'line-opacity': 0.5
             }
+          },
+          {
+            id: 'ldnp-boundary-line',
+            type: 'line',
+            source: 'boundary_source',
+            paint: {
+              'line-color': '#f59e0b',
+              'line-width': 2.5,
+              'line-dasharray': [4, 2]
+            }
           }
         ]
       },
-      center: [-3.12, 54.48],
+      center: [-3.08, 54.47],
       zoom: 10,
       maxZoom: 17,
       minZoom: 8
@@ -245,7 +334,21 @@
     map.addControl(new maplibregl.NavigationControl(), 'top-right');
     map.addControl(new maplibregl.ScaleControl({ maxWidth: 100, unit: 'metric' }), 'bottom-left');
 
-
+    function toggleLayer(type, visible) {
+      const val = visible ? 'visible' : 'none';
+      if (type === 'carbon') {
+        if (map.getLayer('carbon-squares-fill')) {
+          map.setLayoutProperty('carbon-squares-fill', 'visibility', val);
+        }
+        if (map.getLayer('carbon-squares-border')) {
+          map.setLayoutProperty('carbon-squares-border', 'visibility', val);
+        }
+      } else if (type === 'boundary') {
+        if (map.getLayer('ldnp-boundary-line')) {
+          map.setLayoutProperty('ldnp-boundary-line', 'visibility', val);
+        }
+      }
+    }
 
     const popup = new maplibregl.Popup({
       closeButton: false,
@@ -253,6 +356,14 @@
     });
 
     map.on('mousemove', 'carbon-squares-fill', (e) => {
+      // Only show popup if layer is visible
+      const vis = map.getLayoutProperty('carbon-squares-fill', 'visibility');
+      if (vis === 'none') {
+        popup.remove();
+        map.getCanvas().style.cursor = '';
+        return;
+      }
+
       map.getCanvas().style.cursor = 'pointer';
       if (e.features.length > 0) {
         const p = e.features[0].properties;

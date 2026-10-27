@@ -61,8 +61,8 @@ def query_tiles_by_geojson(geojson: Dict) -> List[Dict]:
         data = json.loads(resp.read().decode("utf-8"))
 
     results = data.get("results", [])
-    # Filter for National LiDAR Programme point cloud products
-    pc_tiles = [r for r in results if r.get("product", {}).get("id") == "national_lidar_programme_point_cloud"]
+    # Support both National LiDAR Programme and historical repeat LiDAR surveys
+    pc_tiles = [r for r in results if 'point_cloud' in r.get("product", {}).get("id", "")]
     return pc_tiles
 
 def deduplicate_tiles(tiles: List[Dict]) -> List[Dict]:
@@ -265,6 +265,17 @@ def main():
         help="Limit number of tiles to download (useful for testing, 0 = all)"
     )
     parser.add_argument(
+        "--year",
+        type=str,
+        default=None,
+        help="Target survey year to download (e.g. 2009, 2013, 2017, 2020)"
+    )
+    parser.add_argument(
+        "--list-years",
+        action="store_true",
+        help="List all available survey years and tile counts across Lake District"
+    )
+    parser.add_argument(
         "--threads", "-t",
         type=int,
         default=4,
@@ -293,7 +304,38 @@ def main():
     else:
         tiles = query_tiles_by_bbox(args.bbox)
 
-    tiles = deduplicate_tiles(tiles)
+    if args.list_years:
+        if not args.no_boundary_filter and args.boundary and os.path.exists(args.boundary):
+            park_tiles = filter_tiles_by_boundary(tiles, args.boundary)
+        else:
+            park_tiles = tiles
+        
+        from collections import defaultdict
+        years_map = defaultdict(list)
+        for t in park_tiles:
+            y = str(t.get("year", {}).get("id"))
+            p = t.get("product", {}).get("id")
+            years_map[y].append((t["tile"]["id"], p))
+        
+        print("\n=======================================================")
+        print(" Available Survey Years - Lake District National Park")
+        print("=======================================================")
+        for y in sorted(years_map.keys()):
+            prods = sorted(set(x[1] for x in years_map[y]))
+            print(f"  Year {y:<4} : {len(years_map[y]):>3} tiles  [{', '.join(prods)}]")
+        print("=======================================================")
+        print("To download historical point clouds for a specific year:")
+        print("  python3 download_lidar.py --year 2009")
+        print("  ./pipeline.sh download --year 2009")
+        return
+
+    if args.year:
+        target_y = str(args.year)
+        tiles = [t for t in tiles if str(t.get("year", {}).get("id")) == target_y]
+        if args.output_dir.rstrip("/").endswith("data/raw"):
+            args.output_dir = os.path.join(args.output_dir, target_y)
+    else:
+        tiles = deduplicate_tiles(tiles)
 
     if not args.no_boundary_filter and args.boundary and os.path.exists(args.boundary):
         tiles = filter_tiles_by_boundary(tiles, args.boundary)

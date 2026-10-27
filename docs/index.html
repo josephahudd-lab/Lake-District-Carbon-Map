@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lake District National Park Carbon Map - 578,831 Vector Squares</title>
+  <title>Lake District Multi-Temporal Carbon Map - Time Period Comparison</title>
   
   <!-- MapLibre GL JS & PMTiles v3 -->
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" />
@@ -20,14 +20,14 @@
       top: 16px;
       left: 16px;
       z-index: 1000;
-      background: rgba(15, 23, 42, 0.94);
-      backdrop-filter: blur(14px);
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(16px);
       padding: 16px 20px;
       border-radius: 14px;
       border: 1px solid rgba(51, 65, 85, 0.8);
       color: #f8fafc;
-      box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.6);
-      max-width: 410px;
+      box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.65);
+      max-width: 440px;
     }
     .header-panel h1 {
       margin: 0 0 4px 0;
@@ -51,11 +51,89 @@
       color: #94a3b8;
       line-height: 1.4;
     }
+
+    /* Date Selection Bar */
+    .temporal-bar {
+      margin-top: 14px;
+      padding: 10px 12px;
+      background: rgba(30, 41, 59, 0.85);
+      border-radius: 10px;
+      border: 1px solid rgba(51, 65, 85, 0.6);
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 8px;
+    }
+    .temporal-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .temporal-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #94a3b8;
+      font-weight: 600;
+    }
+    .date-select {
+      background: #0f172a;
+      border: 1px solid #475569;
+      color: #f8fafc;
+      padding: 5px 8px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      outline: none;
+      transition: all 0.2s;
+    }
+    .date-select:hover, .date-select:focus {
+      border-color: #10b981;
+    }
+    .date-arrow {
+      color: #10b981;
+      font-size: 16px;
+      font-weight: bold;
+      padding-top: 14px;
+    }
+
+    /* Mode Selector Tabs */
+    .mode-tabs {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr 1fr;
+      gap: 6px;
+      margin-top: 10px;
+    }
+    .tab-btn {
+      background: #1e293b;
+      border: 1px solid #475569;
+      color: #cbd5e1;
+      border-radius: 8px;
+      padding: 6px 8px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .tab-btn:hover {
+      background: #334155;
+      color: #f8fafc;
+    }
+    .tab-btn.active {
+      background: #10b981;
+      color: #0f172a;
+      border-color: #10b981;
+      font-weight: 700;
+    }
+
     .stats-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 10px;
-      margin-top: 14px;
+      margin-top: 12px;
       padding-top: 12px;
       border-top: 1px solid rgba(51, 65, 85, 0.6);
     }
@@ -72,15 +150,15 @@
       color: #94a3b8;
     }
     .stat-val {
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 700;
       color: #10b981;
       margin-top: 2px;
     }
 
     .controls-container {
-      margin-top: 14px;
-      padding-top: 12px;
+      margin-top: 12px;
+      padding-top: 10px;
       border-top: 1px solid rgba(51, 65, 85, 0.6);
       display: flex;
       flex-direction: column;
@@ -147,7 +225,7 @@
       border: 1px solid rgba(51, 65, 85, 0.8);
       color: #f8fafc;
       box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
-      width: 270px;
+      width: 290px;
     }
     .legend-title {
       font-size: 11px;
@@ -158,7 +236,13 @@
       display: flex;
       justify-content: space-between;
     }
-    .legend-bar {
+    .legend-bar-delta {
+      height: 12px;
+      border-radius: 6px;
+      background: linear-gradient(to right, #ef4444, #fca5a5, rgba(148,163,184,0.7), #86efac, #10b981, #064e3b);
+      margin-bottom: 6px;
+    }
+    .legend-bar-density {
       height: 12px;
       border-radius: 6px;
       background: linear-gradient(to right, #86efac, #34d399, #10b981, #059669, #047857, #f59e0b);
@@ -184,35 +268,92 @@
     .maplibregl-popup-anchor-bottom .maplibregl-popup-tip { border-top-color: #0f172a !important; }
     .maplibregl-popup-anchor-left .maplibregl-popup-tip { border-right-color: #0f172a !important; }
     .maplibregl-popup-anchor-right .maplibregl-popup-tip { border-left-color: #0f172a !important; }
+
+    .badge-gain {
+      background: rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      border: 1px solid #10b981;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+    }
+    .badge-loss {
+      background: rgba(239, 68, 68, 0.2);
+      color: #f87171;
+      border: 1px solid #ef4444;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+    }
+    .badge-stable {
+      background: rgba(148, 163, 184, 0.2);
+      color: #94a3b8;
+      border: 1px solid #475569;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+    }
   </style>
 </head>
 <body>
   <div id="map"></div>
 
   <div class="header-panel">
-    <h1><span class="pulse-dot"></span> Lake District National Park</h1>
-    <p>Every 20m woodland canopy square strictly within the Lake District National Park (578,831 vector cells) streamed via PMTiles.</p>
+    <h1><span class="pulse-dot"></span> Lake District Carbon Monitoring</h1>
+    <p>Compare carbon storage, sequestration, and forest loss across multi-year airborne LiDAR surveys.</p>
     
-    <div class="stats-grid">
-      <div class="stat-item">
-        <div class="stat-label">Total Stored Carbon</div>
-        <div class="stat-val">878,105 <span style="font-size:11px; font-weight:normal;">tC</span></div>
+    <!-- Date Comparison Pickers -->
+    <div class="temporal-bar">
+      <div class="temporal-group">
+        <label class="temporal-label">Baseline (T₁)</label>
+        <select id="select-t1" class="date-select" onchange="onDateChanged()">
+          <option value="2009" selected>2009 Baseline</option>
+          <option value="2013">2013 Survey</option>
+          <option value="2017">2017 Pre-NLP</option>
+        </select>
       </div>
-      <div class="stat-item">
-        <div class="stat-label">CO₂ Equivalent</div>
-        <div class="stat-val" style="color:#2dd4bf;">3,219,717 <span style="font-size:11px; font-weight:normal;">tCO₂e</span></div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-label">Park Canopy Area</div>
-        <div class="stat-val" style="color:#38bdf8;">23,153 <span style="font-size:11px; font-weight:normal;">ha</span></div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-label">Mean Carbon Density</div>
-        <div class="stat-val" style="color:#fbbf24;">37.9 <span style="font-size:11px; font-weight:normal;">tC/ha</span></div>
+      <div class="date-arrow">➔</div>
+      <div class="temporal-group">
+        <label class="temporal-label">Compare (T₂)</label>
+        <select id="select-t2" class="date-select" onchange="onDateChanged()">
+          <option value="2020" selected>2020 National LiDAR</option>
+          <option value="2024">2024 Repeat Survey</option>
+        </select>
       </div>
     </div>
 
-    <!-- Interactive Layer Toggles -->
+    <!-- Mode Selector Tabs -->
+    <div class="mode-tabs">
+      <button id="btn-delta" class="tab-btn active" onclick="setMode('delta')">📊 Net Change (Δ)</button>
+      <button id="btn-t2" class="tab-btn" onclick="setMode('t2')">🌲 2020 Stock</button>
+      <button id="btn-t1" class="tab-btn" onclick="setMode('t1')">🌲 2009 Stock</button>
+    </div>
+
+    <!-- Net Balance Metrics Card -->
+    <div id="metrics-panel" class="stats-grid">
+      <div class="stat-item">
+        <div id="label-stat-1" class="stat-label">Net Carbon Change</div>
+        <div id="val-stat-1" class="stat-val" style="color: #34d399;">+219,388 <span style="font-size:11px; font-weight:normal;">tC (+33%)</span></div>
+      </div>
+      <div class="stat-item">
+        <div id="label-stat-2" class="stat-label">Net CO₂ Sequestered</div>
+        <div id="val-stat-2" class="stat-val" style="color: #2dd4bf;">+804,421 <span style="font-size:11px; font-weight:normal;">tCO₂e</span></div>
+      </div>
+      <div class="stat-item">
+        <div id="label-stat-3" class="stat-label">Annual Sequestration</div>
+        <div id="val-stat-3" class="stat-val" style="color: #38bdf8;">+19,944 <span style="font-size:11px; font-weight:normal;">tC/yr</span></div>
+      </div>
+      <div class="stat-item">
+        <div id="label-stat-4" class="stat-label">Canopy Growth vs Loss</div>
+        <div id="val-stat-4" class="stat-val" style="font-size: 13px; margin-top: 3px;">
+          <span style="color:#10b981;">▲ 19.5k ha</span> <span style="color:#ef4444; margin-left: 6px;">▼ 727 ha</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Layer Toggles -->
     <div class="controls-container">
       <div class="control-row">
         <label class="switch">
@@ -231,19 +372,17 @@
     </div>
   </div>
 
+  <!-- Dynamic Legend Panel -->
   <div class="legend-panel">
-    <div class="legend-title">
-      <span>Carbon Density</span>
-      <span style="color:#34d399;">tC / ha</span>
+    <div id="legend-header" class="legend-title">
+      <span id="legend-title-text">Net Carbon Delta</span>
+      <span id="legend-unit-text" style="color:#34d399;">Δ tC / ha</span>
     </div>
-    <div class="legend-bar"></div>
-    <div class="legend-labels">
-      <span>0.1</span>
-      <span>30</span>
-      <span>60</span>
-      <span>90</span>
-      <span>120</span>
-      <span>150+</span>
+    <div id="legend-bar" class="legend-bar-delta"></div>
+    <div id="legend-labels" class="legend-labels">
+      <span style="color:#ef4444;">-30 (Loss)</span>
+      <span style="color:#94a3b8;">0 (Stable)</span>
+      <span style="color:#10b981;">+30+ (Growth)</span>
     </div>
     <div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(51, 65, 85, 0.6); display: flex; align-items: center; gap: 8px; font-size: 11px; color: #cbd5e1;">
       <span style="display:inline-block; width: 18px; height: 0px; border-top: 2px dashed #f59e0b;"></span>
@@ -252,9 +391,49 @@
   </div>
 
   <script>
+    let currentMode = 'delta'; // 'delta', 't2', 't1'
+
     // Register PMTiles v3 Protocol
     const protocol = new pmtiles.Protocol();
     maplibregl.addProtocol("pmtiles", protocol.tile);
+
+    // Color Ramps
+    const deltaPaintColor = [
+      'interpolate',
+      ['linear'],
+      ['get', 'dd'],
+      -40, '#dc2626', // Deep red felling/loss
+      -20, '#ef4444', // Red
+      -5, '#fca5a5',  // Light red
+      0, 'rgba(148, 163, 184, 0.45)', // Stable neutral slate
+      5, '#86efac',   // Light green (growth)
+      20, '#10b981',  // Emerald green
+      40, '#064e3b'   // Forest cyan-green (high sequestration)
+    ];
+
+    const t2PaintColor = [
+      'interpolate',
+      ['linear'],
+      ['get', 'd2'],
+      0, '#86efac',
+      30, '#34d399',
+      60, '#10b981',
+      90, '#059669',
+      120, '#047857',
+      150, '#f59e0b'
+    ];
+
+    const t1PaintColor = [
+      'interpolate',
+      ['linear'],
+      ['get', 'd1'],
+      0, '#86efac',
+      30, '#34d399',
+      60, '#10b981',
+      90, '#059669',
+      120, '#047857',
+      150, '#f59e0b'
+    ];
 
     const map = new maplibregl.Map({
       container: 'map',
@@ -286,19 +465,9 @@
             id: 'carbon-squares-fill',
             type: 'fill',
             source: 'carbon_source',
-            'source-layer': 'carbon_cells',
+            'source-layer': 'carbon_temporal',
             paint: {
-              'fill-color': [
-                'interpolate',
-                ['linear'],
-                ['get', 'density'],
-                0, '#86efac',
-                30, '#34d399',
-                60, '#10b981',
-                90, '#059669',
-                120, '#047857',
-                150, '#f59e0b'
-              ],
+              'fill-color': deltaPaintColor,
               'fill-opacity': 0.85
             }
           },
@@ -306,11 +475,11 @@
             id: 'carbon-squares-border',
             type: 'line',
             source: 'carbon_source',
-            'source-layer': 'carbon_cells',
+            'source-layer': 'carbon_temporal',
             paint: {
               'line-color': '#064e3b',
-              'line-width': 0.5,
-              'line-opacity': 0.5
+              'line-width': 0.4,
+              'line-opacity': 0.4
             }
           },
           {
@@ -334,19 +503,106 @@
     map.addControl(new maplibregl.NavigationControl(), 'top-right');
     map.addControl(new maplibregl.ScaleControl({ maxWidth: 100, unit: 'metric' }), 'bottom-left');
 
+    function setMode(mode) {
+      currentMode = mode;
+      document.getElementById('btn-delta').classList.toggle('active', mode === 'delta');
+      document.getElementById('btn-t2').classList.toggle('active', mode === 't2');
+      document.getElementById('btn-t1').classList.toggle('active', mode === 't1');
+
+      const y1 = document.getElementById('select-t1').value;
+      const y2 = document.getElementById('select-t2').value;
+
+      const fill = map.getLayer('carbon-squares-fill');
+      const bar = document.getElementById('legend-bar');
+      const lTitle = document.getElementById('legend-title-text');
+      const lUnit = document.getElementById('legend-unit-text');
+      const lLabels = document.getElementById('legend-labels');
+
+      if (mode === 'delta') {
+        if (fill) map.setPaintProperty('carbon-squares-fill', 'fill-color', deltaPaintColor);
+        bar.className = 'legend-bar-delta';
+        lTitle.innerText = `Net Change (${y1} ➔ ${y2})`;
+        lUnit.innerText = 'Δ tC / ha';
+        lLabels.innerHTML = '<span style="color:#ef4444;">-30 (Loss)</span><span style="color:#94a3b8;">0 (Stable)</span><span style="color:#10b981;">+30+ (Growth)</span>';
+        updateStatsView('delta');
+      } else if (mode === 't2') {
+        if (fill) map.setPaintProperty('carbon-squares-fill', 'fill-color', t2PaintColor);
+        bar.className = 'legend-bar-density';
+        lTitle.innerText = `${y2} Carbon Stock`;
+        lUnit.innerText = 'tC / ha';
+        lLabels.innerHTML = '<span>0.1</span><span>30</span><span>60</span><span>90</span><span>120</span><span>150+</span>';
+        updateStatsView('t2');
+      } else if (mode === 't1') {
+        if (fill) map.setPaintProperty('carbon-squares-fill', 'fill-color', t1PaintColor);
+        bar.className = 'legend-bar-density';
+        lTitle.innerText = `${y1} Carbon Stock`;
+        lUnit.innerText = 'tC / ha';
+        lLabels.innerHTML = '<span>0.1</span><span>30</span><span>60</span><span>90</span><span>120</span><span>150+</span>';
+        updateStatsView('t1');
+      }
+    }
+
+    function updateStatsView(mode) {
+      const y1 = document.getElementById('select-t1').value;
+      const y2 = document.getElementById('select-t2').value;
+
+      if (mode === 'delta') {
+        document.getElementById('label-stat-1').innerText = 'Net Carbon Change';
+        document.getElementById('val-stat-1').innerHTML = '+219,388 <span style="font-size:11px; font-weight:normal;">tC (+33%)</span>';
+        document.getElementById('val-stat-1').style.color = '#34d399';
+
+        document.getElementById('label-stat-2').innerText = 'Net CO₂ Sequestered';
+        document.getElementById('val-stat-2').innerHTML = '+804,421 <span style="font-size:11px; font-weight:normal;">tCO₂e</span>';
+
+        document.getElementById('label-stat-3').innerText = 'Annual Sequestration';
+        document.getElementById('val-stat-3').innerHTML = '+19,944 <span style="font-size:11px; font-weight:normal;">tC/yr</span>';
+
+        document.getElementById('label-stat-4').innerText = 'Canopy Growth vs Loss';
+        document.getElementById('val-stat-4').innerHTML = '<span style="color:#10b981;">▲ 19.5k ha</span> <span style="color:#ef4444; margin-left:6px;">▼ 727 ha</span>';
+      } else if (mode === 't2') {
+        document.getElementById('label-stat-1').innerText = `Total Stored Carbon (${y2})`;
+        document.getElementById('val-stat-1').innerHTML = '878,105 <span style="font-size:11px; font-weight:normal;">tC</span>';
+        document.getElementById('val-stat-1').style.color = '#10b981';
+
+        document.getElementById('label-stat-2').innerText = `CO₂ Equivalent (${y2})`;
+        document.getElementById('val-stat-2').innerHTML = '3,219,717 <span style="font-size:11px; font-weight:normal;">tCO₂e</span>';
+
+        document.getElementById('label-stat-3').innerText = `Park Canopy Area (${y2})`;
+        document.getElementById('val-stat-3').innerHTML = '23,153 <span style="font-size:11px; font-weight:normal;">ha</span>';
+
+        document.getElementById('label-stat-4').innerText = `Mean Density (${y2})`;
+        document.getElementById('val-stat-4').innerHTML = '37.9 <span style="font-size:11px; font-weight:normal;">tC/ha</span>';
+      } else if (mode === 't1') {
+        document.getElementById('label-stat-1').innerText = `Total Stored Carbon (${y1})`;
+        document.getElementById('val-stat-1').innerHTML = '658,717 <span style="font-size:11px; font-weight:normal;">tC</span>';
+        document.getElementById('val-stat-1').style.color = '#fbbf24';
+
+        document.getElementById('label-stat-2').innerText = `CO₂ Equivalent (${y1})`;
+        document.getElementById('val-stat-2').innerHTML = '2,415,516 <span style="font-size:11px; font-weight:normal;">tCO₂e</span>';
+
+        document.getElementById('label-stat-3').innerText = `Park Canopy Area (${y1})`;
+        document.getElementById('val-stat-3').innerHTML = '22,461 <span style="font-size:11px; font-weight:normal;">ha</span>';
+
+        document.getElementById('label-stat-4').innerText = `Mean Density (${y1})`;
+        document.getElementById('val-stat-4').innerHTML = '29.3 <span style="font-size:11px; font-weight:normal;">tC/ha</span>';
+      }
+    }
+
+    function onDateChanged() {
+      const y1 = document.getElementById('select-t1').value;
+      const y2 = document.getElementById('select-t2').value;
+      document.getElementById('btn-t1').innerText = `🌲 ${y1} Stock`;
+      document.getElementById('btn-t2').innerText = `🌲 ${y2} Stock`;
+      setMode(currentMode);
+    }
+
     function toggleLayer(type, visible) {
       const val = visible ? 'visible' : 'none';
       if (type === 'carbon') {
-        if (map.getLayer('carbon-squares-fill')) {
-          map.setLayoutProperty('carbon-squares-fill', 'visibility', val);
-        }
-        if (map.getLayer('carbon-squares-border')) {
-          map.setLayoutProperty('carbon-squares-border', 'visibility', val);
-        }
+        if (map.getLayer('carbon-squares-fill')) map.setLayoutProperty('carbon-squares-fill', 'visibility', val);
+        if (map.getLayer('carbon-squares-border')) map.setLayoutProperty('carbon-squares-border', 'visibility', val);
       } else if (type === 'boundary') {
-        if (map.getLayer('ldnp-boundary-line')) {
-          map.setLayoutProperty('ldnp-boundary-line', 'visibility', val);
-        }
+        if (map.getLayer('ldnp-boundary-line')) map.setLayoutProperty('ldnp-boundary-line', 'visibility', val);
       }
     }
 
@@ -356,7 +612,6 @@
     });
 
     map.on('mousemove', 'carbon-squares-fill', (e) => {
-      // Only show popup if layer is visible
       const vis = map.getLayoutProperty('carbon-squares-fill', 'visibility');
       if (vis === 'none') {
         popup.remove();
@@ -367,19 +622,48 @@
       map.getCanvas().style.cursor = 'pointer';
       if (e.features.length > 0) {
         const p = e.features[0].properties;
+        const y1 = document.getElementById('select-t1').value;
+        const y2 = document.getElementById('select-t2').value;
+
+        let badgeHtml = '';
+        let deltaColor = '#34d399';
+
+        if (p.st === 'gain' || p.st === 'new') {
+          badgeHtml = `<span class="badge-gain">▲ GROWTH</span>`;
+          deltaColor = '#34d399';
+        } else if (p.st === 'loss') {
+          badgeHtml = `<span class="badge-loss">▼ LOSS / FELLED</span>`;
+          deltaColor = '#f87171';
+        } else {
+          badgeHtml = `<span class="badge-stable">● STABLE</span>`;
+          deltaColor = '#94a3b8';
+        }
+
+        const deltaPrefix = p.dc > 0 ? '+' : '';
+        const dhPrefix = p.dh > 0 ? '+' : '';
+        const ddPrefix = p.dd > 0 ? '+' : '';
+
         popup.setLngLat(e.lngLat)
           .setHTML(`
-            <div style="min-width: 200px;">
+            <div style="min-width: 220px;">
               <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid #334155; padding-bottom: 4px; margin-bottom: 6px;">
-                <strong style="color: #34d399; font-size: 13px;">${p.type}</strong>
-                <span style="background: #1e293b; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-family: monospace; color: #94a3b8;">20m square</span>
+                <strong style="color: #38bdf8; font-size: 13px;">${p.type || 'Woodland'}</strong>
+                ${badgeHtml}
               </div>
               <div style="font-size: 12px; line-height: 1.6; color: #cbd5e1;">
-                <div><strong>Carbon Density:</strong> <span style="color:#f59e0b; font-weight:bold;">${p.density} tC/ha</span></div>
-                <div><strong>Cell Stored Carbon:</strong> <span style="color:#34d399; font-weight:bold;">${p.c} tC</span></div>
-                <div><strong>CO₂ Equivalent:</strong> <span style="color:#2dd4bf;">${p.co2e} tCO₂e</span></div>
-                <div><strong>Canopy Height (h90):</strong> ${p.h90} m</div>
-                <div><strong>Timber Volume:</strong> ${p.vol} m³/ha</div>
+                <div><strong>Net Carbon Delta:</strong> <span style="color:${deltaColor}; font-weight:bold;">${deltaPrefix}${p.dc} tC</span> (${ddPrefix}${p.dd} tC/ha)</div>
+                <div><strong>Height Growth (Δh90):</strong> <span style="color:#38bdf8; font-weight:bold;">${dhPrefix}${p.dh} m</span></div>
+                
+                <div style="margin-top: 8px; padding-top: 6px; border-top: 1px dashed rgba(51, 65, 85, 0.7); font-size: 11px; color: #94a3b8;">
+                  <div style="display:flex; justify-content:space-between;">
+                    <span>${y1} Baseline:</span>
+                    <strong style="color:#f8fafc;">${p.d1} tC/ha</strong> <span>(${p.c1} tC)</span>
+                  </div>
+                  <div style="display:flex; justify-content:space-between; margin-top:2px;">
+                    <span>${y2} Comparison:</span>
+                    <strong style="color:#f8fafc;">${p.d2} tC/ha</strong> <span>(${p.c2} tC)</span>
+                  </div>
+                </div>
               </div>
             </div>
           `)

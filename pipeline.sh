@@ -33,6 +33,8 @@ usage() {
     echo "  carbon     Join volume grid with NFI woodland mask & calculate Carbon (tC / CO2e)"
     echo "             (Set NFI_PATH environment variable if NFI file is in a custom path)"
     echo ""
+    echo "  compare    Compare carbon storage across 2 survey dates (e.g. ./pipeline.sh compare 2009 2020)"
+    echo ""
     echo "  normalize  (Optional/Legacy) Export pre-normalised LAZ files using PDAL TIN Delaunay"
     echo ""
     echo "  all        Run the entire pipeline end-to-end (download -> fast Rust grid -> carbon)"
@@ -83,6 +85,14 @@ case "$cmd" in
             --grid-size "$GRID_SIZE" \
             --raster
         python3 "$PROJECT_DIR/export_web_map.py"
+        ;;
+
+    compare)
+        echo "=== Multi-Temporal Carbon Stock Comparison ==="
+        BASE_YEAR="${1:-2009}"
+        TARGET_YEAR="${2:-2020}"
+        shift 2 || shift $# || true
+        python3 "$PROJECT_DIR/compare_carbon.py" --base-year "$BASE_YEAR" --target-year "$TARGET_YEAR" "$@"
         ;;
 
     all)

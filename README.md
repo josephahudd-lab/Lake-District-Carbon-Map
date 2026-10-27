@@ -1,5 +1,7 @@
 # Lake District Carbon Mapping Pipeline
 
+### 🌐 **[Click Here to Open the Live Interactive Vector Map](https://josephahudd-lab.github.io/Lake-District-Carbon-Map/)**
+
 A high-performance, automated LiDAR remote sensing pipeline to compute tree volume, biomass, and carbon stocks ($t\text{C}$ and $t\text{CO}_2\text{e}$) across the Lake District National Park (Cumbria, UK).
 
 ---

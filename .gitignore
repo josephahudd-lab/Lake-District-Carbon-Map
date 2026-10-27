@@ -1,0 +1,24 @@
+# Rust build artifacts
+/target/
+Cargo.lock
+
+# Python virtual environment & cache
+.venv/
+__pycache__/
+*.py[cod]
+
+# Raw Data (27 GB LiDAR and raw GIS)
+data/
+
+# Intermediate outputs and massive GeoPackages
+output/
+*.mbtiles
+*.ndjson
+*.tif
+*.gpkg
+*.csv
+
+# Operating system / IDE files
+.DS_Store
+*.swp
+*.bak

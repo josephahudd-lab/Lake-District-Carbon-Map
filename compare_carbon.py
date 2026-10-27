@@ -317,8 +317,17 @@ def main():
 
     base_csv = args.base_csv
     if not base_csv:
-        base_csv = os.path.join(OUTPUT_DIR, f"lake_district_carbon_{args.base_year}.csv")
-        if not os.path.exists(base_csv):
+        candidates = [
+            os.path.join(OUTPUT_DIR, f"lake_district_carbon_{args.base_year}.csv"),
+            os.path.join(OUTPUT_DIR, f"lake_district_{args.base_year}_carbon.csv"),
+            os.path.join(OUTPUT_DIR, args.base_year, "lake_district_carbon.csv"),
+        ]
+        for c in candidates:
+            if os.path.exists(c):
+                base_csv = c
+                break
+        if not base_csv:
+            base_csv = candidates[0]
             generate_historical_baseline(args.target_csv, base_csv, years_back=11)
 
     run_comparison(base_csv, args.target_csv, args.base_year, args.target_year, args.out_prefix)

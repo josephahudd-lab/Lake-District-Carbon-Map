@@ -33,7 +33,8 @@ usage() {
     echo "  carbon     Join volume grid with NFI woodland mask & calculate Carbon (tC / CO2e)"
     echo "             (Set NFI_PATH environment variable if NFI file is in a custom path)"
     echo ""
-    echo "  compare    Compare carbon storage across 2 survey dates (e.g. ./pipeline.sh compare 2009 2020)"
+    echo "  compare      Compare carbon storage across 2 survey dates (e.g. ./pipeline.sh compare 2009 2020)
+  process-year Download, grid, and calculate carbon for an entire year (e.g. ./pipeline.sh process-year 2009)"
     echo ""
     echo "  normalize  (Optional/Legacy) Export pre-normalised LAZ files using PDAL TIN Delaunay"
     echo ""
@@ -93,6 +94,46 @@ case "$cmd" in
         TARGET_YEAR="${2:-2020}"
         shift 2 || shift $# || true
         python3 "$PROJECT_DIR/compare_carbon.py" --base-year "$BASE_YEAR" --target-year "$TARGET_YEAR" "$@"
+        ;;
+
+    process-year)
+        YEAR="${1:-2009}"
+        shift || true
+        echo "======================================================="
+        echo " Running Full Pipeline for Survey Year: $YEAR"
+        echo "======================================================="
+        YEAR_RAW="$DATA_DIR/raw/$YEAR"
+        YEAR_OUT="$OUTPUT_DIR/$YEAR"
+        mkdir -p "$YEAR_RAW" "$YEAR_OUT"
+
+        echo "--- [1/4] Downloading $YEAR LiDAR Tiles from Defra ---"
+        python3 "$PROJECT_DIR/download_lidar.py" --year "$YEAR" -o "$YEAR_RAW" -t 4 "$@"
+
+        echo "--- [2/4] Running Rust Fast Grid Processor ($YEAR) ---"
+        "$PROJECT_DIR/target/release/carbon_lidar" \
+            --input "$YEAR_RAW" \
+            --output-dir "$YEAR_OUT" \
+            --grid-size "$GRID_SIZE" \
+            --threads "$THREADS" \
+            --combine-master
+
+        echo "--- [3/4] Calculating Carbon Stocks with NFI Mask ---"
+        if [ ! -f "$NFI_FILE" ]; then
+            echo "Fetching official Forestry Commission NFI dataset for the Lake District..."
+            python3 "$PROJECT_DIR/download_nfi.py" -o "$NFI_FILE"
+        fi
+        python3 "$PROJECT_DIR/calculate_carbon.py" \
+            --csv "$YEAR_OUT/master_volume_grid.csv" \
+            --nfi "$NFI_FILE" \
+            --output-prefix "$OUTPUT_DIR/lake_district_carbon_${YEAR}" \
+            --grid-size "$GRID_SIZE" \
+            --boundary "$PROJECT_DIR/docs/lake_district_boundary.geojson"
+
+        echo "--- [4/4] Comparing $YEAR Baseline vs 2020 Recent Stock ---"
+        python3 "$PROJECT_DIR/compare_carbon.py" --base-year "$YEAR" --target-year "2020"
+        echo "======================================================="
+        echo " Finished! Multi-temporal PMTiles updated in docs/ and output/"
+        echo "======================================================="
         ;;
 
     all)

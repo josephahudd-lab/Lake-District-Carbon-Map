@@ -85,8 +85,15 @@ def process_with_geopandas(csv_path: str, nfi_path: str, out_prefix: str, cell_s
     filtered = joined[joined['carbon_tonnes'] > 0].copy()
     print(f"Final valid woodland carbon cells: {len(filtered):,}")
 
-    out_csv = f"{out_prefix}_carbon.csv"
-    out_gpkg = f"{out_prefix}_carbon.gpkg"
+    if out_prefix.endswith(".csv"):
+        out_csv = out_prefix
+        out_gpkg = out_prefix[:-4] + ".gpkg"
+    elif out_prefix.endswith("_carbon"):
+        out_csv = f"{out_prefix}.csv"
+        out_gpkg = f"{out_prefix}.gpkg"
+    else:
+        out_csv = f"{out_prefix}_carbon.csv"
+        out_gpkg = f"{out_prefix}_carbon.gpkg"
 
     cols = ['easting', 'northing', 'woodland_type', 'h90', 'volume_ha', 'biomass_tonnes', 'carbon_tonnes', 'co2e_tonnes', 'carbon_density_ha']
     filtered[cols].to_csv(out_csv, index=False)
@@ -110,7 +117,7 @@ def process_with_gdal(csv_path: str, nfi_path: str, out_prefix: str, cell_size: 
 
     # Early National Park Boundary Filter Setup
     boundary_geom = None
-    min_bx, max_bx, min_by, max_by = None, None, None, None
+    bnd_min_x, bnd_max_x, bnd_min_y, bnd_max_y = None, None, None, None
     if boundary_path and os.path.exists(boundary_path):
         print(f"Applying early Lake District National Park spatial filter: {boundary_path}")
         b_ds = ogr.Open(boundary_path)
@@ -126,8 +133,8 @@ def process_with_gdal(csv_path: str, nfi_path: str, out_prefix: str, cell_size: 
                     boundary_geom.Transform(osr.CoordinateTransformation(b_srs, tgt_b))
                 # Set spatial filter on NFI layer so out-of-park polygons are never indexed!
                 nfi_layer.SetSpatialFilter(boundary_geom)
-                min_bx, max_bx, min_by, max_by = boundary_geom.GetEnvelope()
-                print(f"  Boundary filter active. BNG Envelope: X=[{min_bx:.0f}, {max_bx:.0f}], Y=[{min_by:.0f}, {max_by:.0f}]")
+                bnd_min_x, bnd_max_x, bnd_min_y, bnd_max_y = boundary_geom.GetEnvelope()
+                print(f"  Boundary filter active. BNG Envelope: X=[{bnd_min_x:.0f}, {bnd_max_x:.0f}], Y=[{bnd_min_y:.0f}, {bnd_max_y:.0f}]")
 
     layer_defn = nfi_layer.GetLayerDefn()
     
@@ -164,8 +171,15 @@ def process_with_gdal(csv_path: str, nfi_path: str, out_prefix: str, cell_size: 
     print(f"Processing points from {csv_path}...")
     area_ha = (cell_size * cell_size) / 10000.0
 
-    out_csv = f"{out_prefix}_carbon.csv"
-    out_gpkg = f"{out_prefix}_carbon.gpkg"
+    if out_prefix.endswith(".csv"):
+        out_csv = out_prefix
+        out_gpkg = out_prefix[:-4] + ".gpkg"
+    elif out_prefix.endswith("_carbon"):
+        out_csv = f"{out_prefix}.csv"
+        out_gpkg = f"{out_prefix}.gpkg"
+    else:
+        out_csv = f"{out_prefix}_carbon.csv"
+        out_gpkg = f"{out_prefix}_carbon.gpkg"
 
     # Setup output GeoPackage
     gpkg_driver = ogr.GetDriverByName("GPKG")
@@ -216,7 +230,7 @@ def process_with_gdal(csv_path: str, nfi_path: str, out_prefix: str, cell_size: 
 
             # Fast early rejection: point completely outside National Park bounding box
             if boundary_geom is not None:
-                if east < min_bx or east > max_bx or north < min_by or north > max_by:
+                if east < bnd_min_x or east > bnd_max_x or north < bnd_min_y or north > bnd_max_y:
                     continue
 
             bx = int(east // INDEX_BUCKET_SIZE)

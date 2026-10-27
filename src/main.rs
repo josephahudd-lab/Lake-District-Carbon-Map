@@ -144,8 +144,8 @@ impl GroundDtm {
         let cols = self.cols;
         let rows = self.rows;
 
-        // Run 2 iterative passes of 3x3 local averaging for missing cells
-        for _ in 0..2 {
+        // Run up to 8 iterative passes of 3x3 local averaging for missing cells (20m radius)
+        for _ in 0..8 {
             let mut filled_any = false;
             let old_grid = self.grid.clone();
 
@@ -185,21 +185,8 @@ impl GroundDtm {
                 break;
             }
         }
-
-        // Global fallback: any remaining NaNs (e.g. edge voids or lakes) take global median/average
-        let valid_sum: f64 = self.grid.iter().filter(|v| !v.is_nan()).map(|&v| v as f64).sum();
-        let valid_count = self.grid.iter().filter(|v| !v.is_nan()).count();
-        let global_mean = if valid_count > 0 {
-            (valid_sum / (valid_count as f64)) as f32
-        } else {
-            0.0f32
-        };
-
-        for v in self.grid.iter_mut() {
-            if v.is_nan() {
-                *v = global_mean;
-            }
-        }
+        // Do NOT use global tile mean fallback across mountain terrain!
+        // Cells that still have no ground (e.g. open water in deep lakes) remain NaN.
     }
 
     /// Bilinear interpolation of ground elevation at (x, y)
@@ -223,6 +210,10 @@ impl GroundDtm {
         let z10 = self.grid[r0_clamped * self.cols + c1_clamped];
         let z01 = self.grid[r1_clamped * self.cols + c0_clamped];
         let z11 = self.grid[r1_clamped * self.cols + c1_clamped];
+
+        if z00.is_nan() || z10.is_nan() || z01.is_nan() || z11.is_nan() {
+            return f32::NAN;
+        }
 
         (1.0 - fx) * (1.0 - fy) * z00
             + fx * (1.0 - fy) * z10
@@ -343,9 +334,13 @@ fn process_single_tile(
             let px = min_x + (cand.dx as f64);
             let py = min_y + (cand.dy as f64);
             let ground_z = ground_dtm.get_ground_z(px, py);
+            if ground_z.is_nan() {
+                continue;
+            }
             let hag = cand.z - ground_z;
 
-            if (hag as f64) > min_veg_height {
+            // Biological filter: Lake District trees do not exceed 50m (filters noise, pylons, fell crag voids)
+            if (hag as f64) > min_veg_height && (hag as f64) <= 50.0 {
                 let cell_x = (px / grid_size).floor() as i64 * grid_step;
                 let cell_y = (py / grid_size).floor() as i64 * grid_step;
                 let cell = grid.entry((cell_x, cell_y)).or_default();
@@ -377,7 +372,7 @@ fn process_single_tile(
         let h90 = linear_percentile(&cell.veg_heights, 90.0);
         let h95 = linear_percentile(&cell.veg_heights, 95.0);
 
-        if h90 <= 0.0 || h95 <= 0.0 {
+        if h90 <= 0.0 || h90 > 50.0 || h95 <= 0.0 || h95 > 50.0 {
             continue;
         }
 

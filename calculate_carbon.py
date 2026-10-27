@@ -252,6 +252,10 @@ def process_with_gdal(csv_path: str, nfi_path: str, out_prefix: str, cell_size: 
                     continue
 
                 h90 = float(row['h90'])
+                # Biological ceiling check: reject extreme height artifacts (> 50m)
+                if h90 > 50.0:
+                    continue
+
                 vol = float(row['volume_ha'])
                 biomass = round(vol * mult * area_ha, 3)
                 carbon = round(biomass * CARBON_FRACTION, 3)

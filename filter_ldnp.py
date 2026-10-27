@@ -122,11 +122,14 @@ with open(CSV_OUT, "w", newline="", buffering=65536) as f_csv, open(NDJSON_TEMP,
         f_ndjson.writelines(lines)
 
     for feat in layer:
+        h90 = round(feat.GetField("h90") or 0.0, 2)
+        if h90 > 50.0:
+            continue
+
         geom = feat.GetGeometryRef()
         cx = geom.GetX()
         cy = geom.GetY()
         wtype = feat.GetField("woodland_type") or "Woodland"
-        h90 = round(feat.GetField("h90") or 0.0, 2)
         vol = round(feat.GetField("volume_ha") or 0.0, 1)
         bm = round(feat.GetField("biomass_tonnes") or 0.0, 3)
         c = round(feat.GetField("carbon_tonnes") or 0.0, 3)

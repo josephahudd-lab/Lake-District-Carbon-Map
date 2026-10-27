@@ -97,7 +97,7 @@ def process_with_geopandas(csv_path: str, nfi_path: str, out_prefix: str, cell_s
 
     print_carbon_summary(filtered)
 
-def process_with_gdal(csv_path: str, nfi_path: str, out_prefix: str, cell_size: float = 20.0):
+def process_with_gdal(csv_path: str, nfi_path: str, out_prefix: str, cell_size: float = 20.0, boundary_path: str = None):
     from osgeo import ogr, osr, gdal
     gdal.UseExceptions()
 
@@ -107,6 +107,28 @@ def process_with_gdal(csv_path: str, nfi_path: str, out_prefix: str, cell_size: 
         raise RuntimeError(f"Could not open NFI file {nfi_path}")
 
     nfi_layer = nfi_ds.GetLayer(0)
+
+    # Early National Park Boundary Filter Setup
+    boundary_geom = None
+    min_bx, max_bx, min_by, max_by = None, None, None, None
+    if boundary_path and os.path.exists(boundary_path):
+        print(f"Applying early Lake District National Park spatial filter: {boundary_path}")
+        b_ds = ogr.Open(boundary_path)
+        if b_ds:
+            b_layer = b_ds.GetLayer()
+            b_feat = b_layer.GetNextFeature()
+            if b_feat:
+                boundary_geom = b_feat.GetGeometryRef().Clone()
+                b_srs = b_layer.GetSpatialRef()
+                if b_srs and b_srs.IsGeographic():
+                    tgt_b = osr.SpatialReference()
+                    tgt_b.ImportFromEPSG(27700)
+                    boundary_geom.Transform(osr.CoordinateTransformation(b_srs, tgt_b))
+                # Set spatial filter on NFI layer so out-of-park polygons are never indexed!
+                nfi_layer.SetSpatialFilter(boundary_geom)
+                min_bx, max_bx, min_by, max_by = boundary_geom.GetEnvelope()
+                print(f"  Boundary filter active. BNG Envelope: X=[{min_bx:.0f}, {max_bx:.0f}], Y=[{min_by:.0f}, {max_by:.0f}]")
+
     layer_defn = nfi_layer.GetLayerDefn()
     
     # Identify type field
@@ -192,6 +214,11 @@ def process_with_gdal(csv_path: str, nfi_path: str, out_prefix: str, cell_size: 
             east = float(row['easting'])
             north = float(row['northing'])
 
+            # Fast early rejection: point completely outside National Park bounding box
+            if boundary_geom is not None:
+                if east < min_bx or east > max_bx or north < min_by or north > max_by:
+                    continue
+
             bx = int(east // INDEX_BUCKET_SIZE)
             by = int(north // INDEX_BUCKET_SIZE)
             candidates = spatial_grid.get((bx, by))
@@ -212,6 +239,14 @@ def process_with_gdal(csv_path: str, nfi_path: str, out_prefix: str, cell_size: 
                         break
 
             if matched_type:
+                # Precise statutory National Park boundary check
+                if boundary_geom is not None:
+                    if pt is None:
+                        pt = ogr.Geometry(ogr.wkbPoint)
+                        pt.AddPoint(east, north)
+                    if not boundary_geom.Contains(pt):
+                        continue
+
                 mult = get_multiplier(matched_type)
                 if mult <= 0.0:
                     continue
@@ -309,6 +344,10 @@ def main():
     parser.add_argument("--output-prefix", default="lake_district", help="Output filename prefix")
     parser.add_argument("--grid-size", type=float, default=20.0, help="Grid size in metres (default: 20.0)")
     parser.add_argument("--raster", action="store_true", help="Generate a 20m GeoTIFF raster of carbon density (tC/ha)")
+    
+    default_b = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "lake_district_boundary.geojson")
+    parser.add_argument("--boundary", default=default_b if os.path.exists(default_b) else None,
+                        help="Path to National Park boundary GeoJSON to filter strictly to Lake District early")
 
     args = parser.parse_args()
 
@@ -319,7 +358,7 @@ def main():
         process_with_geopandas(args.csv, args.nfi, args.output_prefix, args.grid_size)
     except ImportError:
         print("GeoPandas not installed; using native GDAL/OGR C++ engine...")
-        process_with_gdal(args.csv, args.nfi, args.output_prefix, args.grid_size)
+        process_with_gdal(args.csv, args.nfi, args.output_prefix, args.grid_size, boundary_path=args.boundary)
 
     if args.raster:
         gpkg_path = f"{args.output_prefix}_carbon.gpkg"

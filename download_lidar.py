@@ -86,6 +86,72 @@ def deduplicate_tiles(tiles: List[Dict]) -> List[Dict]:
     deduped.sort(key=lambda x: x["tile"]["id"])
     return deduped
 
+def filter_tiles_by_boundary(tiles: List[Dict], boundary_geojson_path: str) -> List[Dict]:
+    """Filter 5km tiles to only those that intersect the official National Park boundary polygon"""
+    if not os.path.exists(boundary_geojson_path):
+        return tiles
+
+    try:
+        from osgeo import ogr, osr
+    except ImportError:
+        return tiles
+
+    ds = ogr.Open(boundary_geojson_path)
+    if not ds:
+        return tiles
+    layer = ds.GetLayer()
+    feat = layer.GetNextFeature()
+    if not feat:
+        return tiles
+    boundary_geom = feat.GetGeometryRef().Clone()
+
+    srs = layer.GetSpatialRef()
+    if srs and srs.IsGeographic():
+        tgt = osr.SpatialReference()
+        tgt.ImportFromEPSG(27700)
+        transform = osr.CoordinateTransformation(srs, tgt)
+        boundary_geom.Transform(transform)
+
+    GRID_PREFIXES = {
+        'NX': (200000, 500000),
+        'NY': (300000, 500000),
+        'SD': (300000, 400000),
+        'SC': (200000, 400000),
+        'SE': (400000, 400000),
+    }
+
+    def tile_to_poly(tile_id):
+        prefix = tile_id[:2].upper()
+        digits = tile_id[2:]
+        if prefix not in GRID_PREFIXES or len(digits) != 4:
+            return None
+        ox, oy = GRID_PREFIXES[prefix]
+        min_x = ox + int(digits[0:2]) * 1000
+        min_y = oy + int(digits[2:4]) * 1000
+        max_x = min_x + 5000
+        max_y = min_y + 5000
+        ring = ogr.Geometry(ogr.wkbLinearRing)
+        ring.AddPoint_2D(min_x, min_y)
+        ring.AddPoint_2D(max_x, min_y)
+        ring.AddPoint_2D(max_x, max_y)
+        ring.AddPoint_2D(min_x, max_y)
+        ring.AddPoint_2D(min_x, min_y)
+        poly = ogr.Geometry(ogr.wkbPolygon)
+        poly.AddGeometry(ring)
+        return poly
+
+    kept = []
+    dropped = 0
+    for t in tiles:
+        poly = tile_to_poly(t["tile"]["id"])
+        if poly and boundary_geom.Intersects(poly):
+            kept.append(t)
+        else:
+            dropped += 1
+
+    print(f"Boundary filter applied: {len(kept)} tiles intersect National Park ({dropped} non-park tiles excluded early).")
+    return kept
+
 def download_and_extract_tile(tile_info: Dict, out_dir: str, keep_zip: bool = False, max_retries: int = 3) -> str:
     """Download a single tile zip and extract the .laz directly into out_dir with year fallback and retry"""
     tile_id = tile_info["tile"]["id"]
@@ -174,6 +240,16 @@ def main():
         help="Bounding box in WGS84 coordinates (default: Lake District [-3.55, 54.15, -2.65, 54.75])"
     )
     parser.add_argument(
+        "--boundary",
+        default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "lake_district_boundary.geojson"),
+        help="Path to National Park boundary GeoJSON to filter out non-park tiles early"
+    )
+    parser.add_argument(
+        "--no-boundary-filter",
+        action="store_true",
+        help="Disable boundary filtering and download all bbox tiles"
+    )
+    parser.add_argument(
         "--polygon",
         help="Path to a GeoJSON file containing the boundary polygon"
     )
@@ -218,6 +294,9 @@ def main():
         tiles = query_tiles_by_bbox(args.bbox)
 
     tiles = deduplicate_tiles(tiles)
+
+    if not args.no_boundary_filter and args.boundary and os.path.exists(args.boundary):
+        tiles = filter_tiles_by_boundary(tiles, args.boundary)
 
     if args.tiles:
         filter_set = set(t.upper() for t in args.tiles)

@@ -48,8 +48,12 @@ print(f"Found {total_park_cells:,} woodland cells strictly within Lake District 
 # Coordinate transformation setup: EPSG:27700 -> EPSG:4326
 src_srs = osr.SpatialReference()
 src_srs.ImportFromEPSG(27700)
+src_srs.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
+
 tgt_srs = osr.SpatialReference()
 tgt_srs.ImportFromEPSG(4326)
+tgt_srs.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
+
 transform = osr.CoordinateTransformation(src_srs, tgt_srs)
 
 t0 = time.time()
@@ -92,7 +96,11 @@ with open(CSV_OUT, "w", newline="", buffering=65536) as f_csv, open(NDJSON_TEMP,
         lines = []
         for i, it in enumerate(items):
             c_base = i * 5
-            ring = [[round(transformed[c_base + k][0], 6), round(transformed[c_base + k][1], 6)] for k in range(5)]
+            ring = []
+            for k in range(5):
+                p = transformed[c_base + k]
+                lon, lat = (p[1], p[0]) if p[0] > 0 and p[1] < 0 else (p[0], p[1])
+                ring.append([round(lon, 6), round(lat, 6)])
             
             feat_geojson = {
                 "type": "Feature",

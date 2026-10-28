@@ -23,11 +23,12 @@ SPECIES_MULTIPLIERS = {
     'assumed woodland': 0.643,
     'low density': 0.643,
     'shrub': 0.300,
-    'young trees': 0.200,
-    'felled': 0.0,
-    'windblow': 0.0,
-    'ground prep': 0.0,
-    'failed': 0.0,
+    'young trees': 0.350,
+    # Treat management & disturbance categories as potential woodland (calibrated to conifer clear-fells)
+    'felled': 0.475,
+    'windblow': 0.475,
+    'ground prep': 0.475,
+    'failed': 0.475,
 }
 
 CARBON_FRACTION = 0.50       # 50% carbon in dry woody biomass (IPCC standard)

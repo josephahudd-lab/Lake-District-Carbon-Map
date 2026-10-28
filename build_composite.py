@@ -90,46 +90,18 @@ def build_composite_pyramid():
         print("Please run ./pipeline.sh carbon first to generate modern dataset.")
         sys.exit(1)
 
-    # Historical / Recent Epoch candidate paths
-    baseline_candidates = [
-        os.path.join(OUTPUT_DIR, "lake_district_carbon_2009.csv"),
-        os.path.join(OUTPUT_DIR, "lake_district_carbon_baseline.csv"),
-        os.path.join(OUTPUT_DIR, "lake_district_carbon_baseline_carbon.csv"),
-        os.path.join(OUTPUT_DIR, "2009", "lake_district_carbon.csv"),
-        os.path.join(OUTPUT_DIR, "baseline", "lake_district_carbon.csv"),
-    ]
-    baseline_csv = next((p for p in baseline_candidates if os.path.exists(p)), None)
+    baseline_csv = os.path.join(OUTPUT_DIR, "lake_district_carbon_2009.csv")
+    if not os.path.exists(baseline_csv):
+        baseline_csv = os.path.join(OUTPUT_DIR, "2009", "lake_district_carbon.csv")
 
-    midterm_candidates = [
-        os.path.join(OUTPUT_DIR, "lake_district_carbon_midterm_carbon.csv"),
-        os.path.join(OUTPUT_DIR, "lake_district_carbon_midterm.csv"),
-        os.path.join(OUTPUT_DIR, "lake_district_carbon_2017.csv"),
-        os.path.join(OUTPUT_DIR, "2017", "lake_district_carbon.csv"),
-        os.path.join(OUTPUT_DIR, "midterm", "lake_district_carbon.csv"),
-    ]
-    midterm_csv = next((p for p in midterm_candidates if os.path.exists(p)), None)
-
-    recent_candidates = [
-        os.path.join(OUTPUT_DIR, "lake_district_carbon_recent_carbon.csv"),
-        os.path.join(OUTPUT_DIR, "lake_district_carbon_recent.csv"),
-        os.path.join(OUTPUT_DIR, "lake_district_carbon_2024.csv"),
-        os.path.join(OUTPUT_DIR, "2024", "lake_district_carbon.csv"),
-        os.path.join(OUTPUT_DIR, "recent", "lake_district_carbon.csv"),
-    ]
-    recent_csv = next((p for p in recent_candidates if os.path.exists(p)), None)
-
-    print("Epoch Data Sources:")
-    print(f"  Modern (2019-2021) : {modern_csv}")
-    print(f"  Baseline (2009)    : {baseline_csv or '[Using FC yield curve calibration for missing baseline]'}")
-    print(f"  Midterm (2017)     : {midterm_csv or '[None]'}")
-    print(f"  Recent (2024)      : {recent_csv or '[None]'}")
+    print("Survey Epochs:")
+    print(f"  Modern Wall-to-Wall Survey (2020) : {modern_csv}")
+    print(f"  Historical Baseline Survey (2009) : {baseline_csv}")
     print("=======================================================")
 
     t0 = time.time()
     modern_data = load_epoch_csv(modern_csv, default_year=2020)
     baseline_data = load_epoch_csv(baseline_csv, default_year=2009) if baseline_csv else {}
-    midterm_data = load_epoch_csv(midterm_csv, default_year=2017) if midterm_csv else {}
-    recent_data = load_epoch_csv(recent_csv, default_year=2024) if recent_csv else {}
 
     transform = setup_transform()
     ndjson_temp = "/tmp/carbon_composite.ndjson"
@@ -138,15 +110,18 @@ def build_composite_pyramid():
     import random
     random.seed(42)
 
-    total_cells = len(modern_data)
-    recent_updated_count = 0
+    # Full Outer Join / Union: Every cell that was woodland in 2009 OR 2020!
+    all_coords = sorted(set(modern_data.keys()) | set(baseline_data.keys()))
+    total_cells = len(all_coords)
+
     growth_count = 0
     loss_count = 0
     stable_count = 0
+    felled_count = 0
     total_c_now = 0.0
     total_c_base = 0.0
 
-    print(f"\nAssembling composite grid across {total_cells:,} cells...")
+    print(f"\nAssembling unified decadal grid across {total_cells:,} woodland cells (Full Outer Join)...")
 
     with open(ndjson_temp, "w", buffering=65536) as f_nd:
         items_batch = []
@@ -186,91 +161,90 @@ def build_composite_pyramid():
                 lines.append(json.dumps(feat) + "\n")
             f_nd.writelines(lines)
 
-        for (cx, cy), m_rec in modern_data.items():
-            # 1. Determine LATEST survey observation
-            if (cx, cy) in recent_data:
-                now_rec = recent_data[(cx, cy)]
-                recent_updated_count += 1
-            else:
-                now_rec = m_rec
+        for (cx, cy) in all_coords:
+            has_m = (cx, cy) in modern_data
+            has_b = (cx, cy) in baseline_data
 
-            cn = now_rec["c"]
-            dn = now_rec["d"]
-            hn = now_rec["h"]
-            yn = now_rec["y"]
-            wtype = now_rec["t"]
-
-            # 2. Determine BASELINE survey observation
-            if (cx, cy) in baseline_data:
-                base_rec = baseline_data[(cx, cy)]
-                cb = base_rec["c"]
-                db = base_rec["d"]
-                hb = base_rec["h"]
-                yb = base_rec["y"]
+            if has_m and has_b:
+                m_rec = modern_data[(cx, cy)]
+                b_rec = baseline_data[(cx, cy)]
+                cn = m_rec["c"]
+                dn = m_rec["d"]
+                hn = m_rec["h"]
+                wtype = m_rec["t"]
+                cb = b_rec["c"]
+                db = b_rec["d"]
+                hb = b_rec["h"]
+                status = None
+            elif has_b and not has_m:
+                # DEFINITIVE CLEAR-FELL: Present in 2009, zeroed/absent in 2020!
+                b_rec = baseline_data[(cx, cy)]
+                cn = 0.0
+                dn = 0.0
+                hn = 0.0
+                wtype = b_rec["t"] + " (Felled)"
+                cb = b_rec["c"]
+                db = b_rec["d"]
+                hb = b_rec["h"]
+                status = "loss"
+                felled_count += 1
             else:
-                # Forestry Commission empirical yield model calibration for baseline
-                rate = 0.45 if wtype == "Conifer" else 0.30
-                rand_val = random.random()
-                if rand_val < 0.035:
-                    # Felled during decade
-                    hb = min(hn + random.uniform(8.0, 16.0), 45.0)
-                    db = round(dn * 1.6, 1)
-                    cb = round(cn * 1.6, 3)
+                # Present in 2020, not covered by 2009 flight swath
+                m_rec = modern_data[(cx, cy)]
+                cn = m_rec["c"]
+                dn = m_rec["d"]
+                hn = m_rec["h"]
+                wtype = m_rec["t"]
+
+                if wtype in ["Young trees", "Ground prep", "Failed"]:
+                    # Young planting / restock that was bare in 2009
+                    hb = 0.0
+                    db = 0.0
+                    cb = 0.0
+                    status = "gain"
                 else:
+                    # Forestry Commission empirical yield model calibration for baseline
+                    rate = 0.45 if "conifer" in wtype.lower() else 0.30
                     growth = (rate * 11) * random.uniform(0.85, 1.15)
-                    hb = max(hn - growth, 3.0)
+                    hb = max(hn - growth, 1.5)
                     ratio = (hb / hn) ** 1.35 if hn > 0 else 0.5
                     db = round(dn * ratio, 1)
                     cb = round(cn * ratio, 3)
-                yb = 2009
+                    status = None
 
-            # 3. Calculate deltas
-            dc = round(cn - cb, 2)
+            # Deltas
             dd = round(dn - db, 1)
             dh = round(hn - hb, 1)
+            dc = round(cn - cb, 2)
 
-            if dc > 0.15:
-                status = "gain"
-                growth_count += 1
-            elif dc < -0.15:
-                status = "loss"
+            if status is None:
+                if dd > 1.0:
+                    status = "gain"
+                    growth_count += 1
+                elif dd < -1.0:
+                    status = "loss"
+                    loss_count += 1
+                else:
+                    status = "stable"
+                    stable_count += 1
+            elif status == "loss":
                 loss_count += 1
-            else:
-                status = "stable"
-                stable_count += 1
+            elif status == "gain":
+                growth_count += 1
 
             total_c_now += cn
             total_c_base += cb
 
-            # 4. Construct compact timeline string: "09:h|17:h|20:h|24:h"
-            tl_parts = [f"{str(yb)[-2:]}:{round(hb, 1)}"]
-            if (cx, cy) in midterm_data:
-                mid_rec = midterm_data[(cx, cy)]
-                tl_parts.append(f"{str(mid_rec['y'])[-2:]}:{round(mid_rec['h'], 1)}")
-            if yn != 2020:
-                tl_parts.append(f"20:{round(m_rec['h'], 1)}")
-            tl_parts.append(f"{str(yn)[-2:]}:{round(hn, 1)}")
-            tl_str = "|".join(tl_parts)
-
             props = {
                 "type": wtype,
                 "d09": round(db, 1),
-                "d20": round(m_rec["d"], 1),
-                "dn": round(dn, 1),
-                "db": round(db, 1),
+                "d20": round(dn, 1),
+                "h09": round(hb, 1),
+                "h20": round(hn, 1),
                 "dd": dd,
                 "dh": dh,
-                "hn": round(hn, 1),
-                "hb": round(hb, 1),
-                "st": status,
-                "tl": tl_str,
-                "yb": yb,
-                "yn": yn
+                "st": status
             }
-            if (cx, cy) in midterm_data:
-                props["d17"] = round(midterm_data[(cx, cy)]["d"], 1)
-            if (cx, cy) in recent_data:
-                props["d24"] = round(recent_data[(cx, cy)]["d"], 1)
 
             items_batch.append({"cx": cx, "cy": cy, "props": props})
             if len(items_batch) >= BATCH_SIZE:
@@ -282,12 +256,12 @@ def build_composite_pyramid():
 
     print(f"Assembly completed in {time.time() - t0:.1f}s.")
     print("\n" + "=" * 55)
-    print(" LAKE DISTRICT COMPOSITE CARBON AUDIT")
+    print(" LAKE DISTRICT DECADAL CARBON AUDIT (2009 vs 2020)")
     print("=" * 55)
     print(f" Total Surveyed Cells     : {total_cells:,} ({total_cells * 0.04:,.1f} ha)")
-    print(f" Cells with 2024 Updates : {recent_updated_count:,}")
+    print(f" Definitive Felled Cells  : {felled_count:,} ({felled_count * 0.04:,.1f} ha)")
     print(f" Baseline Total Carbon    : {total_c_base:,.1f} tonnes C")
-    print(f" Current Total Carbon     : {total_c_now:,.1f} tonnes C")
+    print(f" Modern Total Carbon      : {total_c_now:,.1f} tonnes C")
     net_c_change = total_c_now - total_c_base
     pct_change = (net_c_change / total_c_base) * 100 if total_c_base > 0 else 0
     print(f" Net Carbon Change        : {net_c_change:+,.1f} tonnes C ({pct_change:+.1f}%)")

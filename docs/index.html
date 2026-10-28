@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lake District Multi-Temporal Carbon Map - Time Period Comparison</title>
+  <title>Lake District Decadal Carbon Map (2009 Baseline vs 2020 National LiDAR)</title>
   
   <!-- MapLibre GL JS & PMTiles v3 -->
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" />
@@ -15,6 +15,7 @@
     body, html { margin: 0; padding: 0; height: 100%; width: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; }
     #map { height: 100vh; width: 100vw; }
 
+    /* Control Panel */
     .header-panel {
       position: absolute;
       top: 16px;
@@ -22,11 +23,11 @@
       z-index: 1000;
       background: rgba(15, 23, 42, 0.95);
       backdrop-filter: blur(16px);
-      padding: 16px 20px;
+      padding: 18px 20px;
       border-radius: 14px;
-      border: 1px solid rgba(51, 65, 85, 0.8);
+      border: 1px solid rgba(51, 65, 85, 0.85);
       color: #f8fafc;
-      box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.65);
+      box-shadow: 0 12px 36px -4px rgba(0, 0, 0, 0.7);
       max-width: 440px;
     }
     .header-panel h1 {
@@ -49,68 +50,56 @@
       margin: 0;
       font-size: 12px;
       color: #94a3b8;
-      line-height: 1.4;
+      line-height: 1.45;
     }
 
-    /* Date Selection Bar */
-    .temporal-bar {
-      margin-top: 14px;
-      padding: 10px 12px;
-      background: rgba(30, 41, 59, 0.85);
-      border-radius: 10px;
+    /* Epoch Banner */
+    .epoch-badge-container {
+      margin-top: 12px;
+      padding: 8px 12px;
+      background: rgba(30, 41, 59, 0.7);
+      border-radius: 8px;
       border: 1px solid rgba(51, 65, 85, 0.6);
-      display: grid;
-      grid-template-columns: 1fr auto 1fr;
+      display: flex;
       align-items: center;
-      gap: 8px;
+      justify-content: space-between;
+      font-size: 11px;
     }
-    .temporal-group {
+    .epoch-item {
       display: flex;
       flex-direction: column;
-      gap: 4px;
     }
-    .temporal-label {
-      font-size: 10px;
+    .epoch-tag {
+      font-size: 9px;
       text-transform: uppercase;
       letter-spacing: 0.5px;
       color: #94a3b8;
       font-weight: 600;
     }
-    .date-select {
-      background: #0f172a;
-      border: 1px solid #475569;
+    .epoch-name {
+      font-weight: 700;
       color: #f8fafc;
-      padding: 5px 8px;
-      border-radius: 6px;
       font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      outline: none;
-      transition: all 0.2s;
     }
-    .date-select:hover, .date-select:focus {
-      border-color: #10b981;
-    }
-    .date-arrow {
+    .epoch-arrow {
       color: #10b981;
-      font-size: 16px;
       font-weight: bold;
-      padding-top: 14px;
+      font-size: 16px;
     }
 
     /* Mode Selector Tabs */
     .mode-tabs {
       display: grid;
-      grid-template-columns: 1.2fr 1fr 1fr;
+      grid-template-columns: 1.25fr 1fr 1fr;
       gap: 6px;
-      margin-top: 10px;
+      margin-top: 12px;
     }
     .tab-btn {
       background: #1e293b;
       border: 1px solid #475569;
       color: #cbd5e1;
       border-radius: 8px;
-      padding: 6px 8px;
+      padding: 7px 8px;
       font-size: 11px;
       font-weight: 600;
       cursor: pointer;
@@ -127,21 +116,23 @@
       color: #0f172a;
       border-color: #10b981;
       font-weight: 700;
+      box-shadow: 0 0 12px rgba(16, 185, 129, 0.35);
     }
 
+    /* Metrics Grid */
     .stats-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 10px;
-      margin-top: 12px;
+      margin-top: 14px;
       padding-top: 12px;
       border-top: 1px solid rgba(51, 65, 85, 0.6);
     }
     .stat-item {
       background: rgba(30, 41, 59, 0.7);
-      padding: 8px 12px;
+      padding: 9px 12px;
       border-radius: 8px;
-      border: 1px solid rgba(51, 65, 85, 0.4);
+      border: 1px solid rgba(51, 65, 85, 0.5);
     }
     .stat-label {
       font-size: 10px;
@@ -156,6 +147,43 @@
       margin-top: 2px;
     }
 
+    /* Quick Location Fly-to Pills */
+    .location-pills {
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(51, 65, 85, 0.6);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }
+    .pill-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #94a3b8;
+      font-weight: 600;
+      width: 100%;
+      margin-bottom: 2px;
+    }
+    .loc-btn {
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid rgba(71, 85, 105, 0.7);
+      color: #94a3b8;
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 10px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.15s;
+    }
+    .loc-btn:hover {
+      background: #334155;
+      color: #38bdf8;
+      border-color: #38bdf8;
+    }
+
+    /* Layer Controls */
     .controls-container {
       margin-top: 12px;
       padding-top: 10px;
@@ -179,11 +207,7 @@
       height: 20px;
       flex-shrink: 0;
     }
-    .switch input {
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
+    .switch input { opacity: 0; width: 0; height: 0; }
     .slider {
       position: absolute;
       cursor: pointer;
@@ -203,16 +227,11 @@
       transition: .25s;
       border-radius: 50%;
     }
-    input:checked + .slider {
-      background-color: #10b981;
-    }
-    input:checked + .slider.slider-amber {
-      background-color: #f59e0b;
-    }
-    input:checked + .slider:before {
-      transform: translateX(16px);
-    }
+    input:checked + .slider { background-color: #10b981; }
+    input:checked + .slider.slider-amber { background-color: #f59e0b; }
+    input:checked + .slider:before { transform: translateX(16px); }
 
+    /* Legend Panel */
     .legend-panel {
       position: absolute;
       bottom: 24px;
@@ -222,10 +241,10 @@
       backdrop-filter: blur(14px);
       padding: 14px 18px;
       border-radius: 12px;
-      border: 1px solid rgba(51, 65, 85, 0.8);
+      border: 1px solid rgba(51, 65, 85, 0.85);
       color: #f8fafc;
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
-      width: 290px;
+      box-shadow: 0 10px 28px -4px rgba(0, 0, 0, 0.6);
+      width: 300px;
     }
     .legend-title {
       font-size: 11px;
@@ -239,7 +258,7 @@
     .legend-bar-delta {
       height: 12px;
       border-radius: 6px;
-      background: linear-gradient(to right, #ef4444, #fca5a5, rgba(148,163,184,0.7), #86efac, #10b981, #064e3b);
+      background: linear-gradient(to right, #dc2626 0%, #ef4444 20%, #fca5a5 38%, rgba(148, 163, 184, 0.7) 48%, rgba(148, 163, 184, 0.7) 52%, #86efac 62%, #10b981 80%, #064e3b 100%);
       margin-bottom: 6px;
     }
     .legend-bar-density {
@@ -256,32 +275,43 @@
       font-size: 10px;
     }
 
+    /* Custom MapLibre Popups */
     .maplibregl-popup-content {
       background: #0f172a !important;
       color: #f8fafc !important;
       border: 1px solid #334155 !important;
-      border-radius: 10px !important;
-      padding: 12px 14px !important;
-      box-shadow: 0 15px 30px rgba(0,0,0,0.5) !important;
+      border-radius: 12px !important;
+      padding: 14px 16px !important;
+      box-shadow: 0 18px 36px rgba(0,0,0,0.65) !important;
     }
     .maplibregl-popup-anchor-top .maplibregl-popup-tip { border-bottom-color: #0f172a !important; }
     .maplibregl-popup-anchor-bottom .maplibregl-popup-tip { border-top-color: #0f172a !important; }
     .maplibregl-popup-anchor-left .maplibregl-popup-tip { border-right-color: #0f172a !important; }
     .maplibregl-popup-anchor-right .maplibregl-popup-tip { border-left-color: #0f172a !important; }
 
-    .badge-gain {
-      background: rgba(16, 185, 129, 0.2);
-      color: #34d399;
-      border: 1px solid #10b981;
+    .badge-felled {
+      background: rgba(220, 38, 38, 0.25);
+      color: #f87171;
+      border: 1px solid #ef4444;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.3px;
+    }
+    .badge-loss {
+      background: rgba(239, 68, 68, 0.2);
+      color: #fca5a5;
+      border: 1px solid #f87171;
       padding: 2px 6px;
       border-radius: 4px;
       font-size: 10px;
       font-weight: 700;
     }
-    .badge-loss {
-      background: rgba(239, 68, 68, 0.2);
-      color: #f87171;
-      border: 1px solid #ef4444;
+    .badge-gain {
+      background: rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      border: 1px solid #10b981;
       padding: 2px 6px;
       border-radius: 4px;
       font-size: 10px;
@@ -302,56 +332,58 @@
 
   <div class="header-panel">
     <h1><span class="pulse-dot"></span> Lake District Carbon Monitoring</h1>
-    <p>Compare carbon storage, sequestration, and forest loss across multi-year airborne LiDAR surveys.</p>
+    <p>Decadal canopy growth, sequestration, and clear-fell detection across wall-to-wall airborne LiDAR surveys.</p>
     
-    <!-- Date Comparison Pickers -->
-    <div class="temporal-bar">
-      <div class="temporal-group">
-        <label class="temporal-label">Baseline (T₁)</label>
-        <select id="select-t1" class="date-select" onchange="onDateChanged()">
-          <option value="2009" selected>2009 Baseline Survey</option>
-          <option value="2017">2017 Midterm Monitoring</option>
-          <option value="2020">2020 Modern National LiDAR</option>
-        </select>
+    <!-- Permanent Epoch Indicators -->
+    <div class="epoch-badge-container">
+      <div class="epoch-item">
+        <span class="epoch-tag">Baseline Epoch (T₁)</span>
+        <span class="epoch-name">2009 Historical Survey</span>
       </div>
-      <div class="date-arrow">➔</div>
-      <div class="temporal-group">
-        <label class="temporal-label">Compare (T₂)</label>
-        <select id="select-t2" class="date-select" onchange="onDateChanged()">
-          <option value="2017">2017 Midterm Monitoring</option>
-          <option value="2020" selected>2020 Modern National LiDAR</option>
-          <option value="2024">2024 Repeat Survey</option>
-        </select>
+      <div class="epoch-arrow">➔</div>
+      <div class="epoch-item" style="text-align: right;">
+        <span class="epoch-tag">Modern Epoch (T₂)</span>
+        <span class="epoch-name">2020 National LiDAR</span>
       </div>
     </div>
 
     <!-- Mode Selector Tabs -->
     <div class="mode-tabs">
       <button id="btn-delta" class="tab-btn active" onclick="setMode('delta')">📊 Net Change (Δ)</button>
-      <button id="btn-t2" class="tab-btn" onclick="setMode('t2')">🌲 2020 Stock</button>
-      <button id="btn-t1" class="tab-btn" onclick="setMode('t1')">🌲 2009 Stock</button>
+      <button id="btn-t2" class="tab-btn" onclick="setMode('t2')">🌲 2020 Modern Stock</button>
+      <button id="btn-t1" class="tab-btn" onclick="setMode('t1')">🌲 2009 Baseline Stock</button>
     </div>
 
-    <!-- Net Balance Metrics Card -->
+    <!-- Key Metrics Grid -->
     <div id="metrics-panel" class="stats-grid">
       <div class="stat-item">
         <div id="label-stat-1" class="stat-label">Net Carbon Change</div>
-        <div id="val-stat-1" class="stat-val" style="color: #34d399;">+219,388 <span style="font-size:11px; font-weight:normal;">tC (+33%)</span></div>
+        <div id="val-stat-1" class="stat-val" style="color: #34d399;">+316,293 <span style="font-size:11px; font-weight:normal;">tC (+50.1%)</span></div>
       </div>
       <div class="stat-item">
         <div id="label-stat-2" class="stat-label">Net CO₂ Sequestered</div>
-        <div id="val-stat-2" class="stat-val" style="color: #2dd4bf;">+804,421 <span style="font-size:11px; font-weight:normal;">tCO₂e</span></div>
+        <div id="val-stat-2" class="stat-val" style="color: #2dd4bf;">+1,159,848 <span style="font-size:11px; font-weight:normal;">tCO₂e</span></div>
       </div>
       <div class="stat-item">
         <div id="label-stat-3" class="stat-label">Annual Sequestration</div>
-        <div id="val-stat-3" class="stat-val" style="color: #38bdf8;">+19,944 <span style="font-size:11px; font-weight:normal;">tC/yr</span></div>
+        <div id="val-stat-3" class="stat-val" style="color: #38bdf8;">+28,754 <span style="font-size:11px; font-weight:normal;">tC/yr</span></div>
       </div>
       <div class="stat-item">
-        <div id="label-stat-4" class="stat-label">Canopy Growth vs Loss</div>
+        <div id="label-stat-4" class="stat-label">Canopy Growth vs Felled</div>
         <div id="val-stat-4" class="stat-val" style="font-size: 13px; margin-top: 3px;">
-          <span style="color:#10b981;">▲ 19.5k ha</span> <span style="color:#ef4444; margin-left: 6px;">▼ 727 ha</span>
+          <span style="color:#10b981;">▲ 24,934 ha</span> <span style="color:#ef4444; margin-left: 6px;">▼ 907 ha</span>
         </div>
       </div>
+    </div>
+
+    <!-- Quick Location Shortcuts -->
+    <div class="location-pills">
+      <div class="pill-label">Explore Key Forests & Felling Coupes</div>
+      <button class="loc-btn" onclick="flyToLoc(-3.210, 54.615, 13)">🌲 Whinlatter Forest</button>
+      <button class="loc-btn" onclick="flyToLoc(-3.020, 54.335, 13)">🌲 Grizedale Forest</button>
+      <button class="loc-btn" onclick="flyToLoc(-3.375, 54.520, 13)">🌲 Ennerdale Valley</button>
+      <button class="loc-btn" onclick="flyToLoc(-3.170, 54.640, 13)">🌲 Dodd Wood</button>
+      <button class="loc-btn" onclick="flyToLoc(-3.080, 54.470, 10)">🗺️ Full Park</button>
     </div>
 
     <!-- Layer Toggles -->
@@ -376,14 +408,14 @@
   <!-- Dynamic Legend Panel -->
   <div class="legend-panel">
     <div id="legend-header" class="legend-title">
-      <span id="legend-title-text">Net Carbon Delta</span>
+      <span id="legend-title-text">Net Carbon Delta (2009 ➔ 2020)</span>
       <span id="legend-unit-text" style="color:#34d399;">Δ tC / ha</span>
     </div>
     <div id="legend-bar" class="legend-bar-delta"></div>
     <div id="legend-labels" class="legend-labels">
-      <span style="color:#ef4444;">-30 (Loss)</span>
+      <span style="color:#ef4444;">-40 (Felled)</span>
       <span style="color:#94a3b8;">0 (Stable)</span>
-      <span style="color:#10b981;">+30+ (Growth)</span>
+      <span style="color:#10b981;">+40+ (Growth)</span>
     </div>
     <div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(51, 65, 85, 0.6); display: flex; align-items: center; gap: 8px; font-size: 11px; color: #cbd5e1;">
       <span style="display:inline-block; width: 18px; height: 0px; border-top: 2px dashed #f59e0b;"></span>
@@ -398,82 +430,67 @@
     const protocol = new pmtiles.Protocol();
     maplibregl.addProtocol("pmtiles", protocol.tile);
 
-    // Multi-Epoch Aggregated Dataset Statistics
-    const PAIR_STATS = {
-      '2009_2020': {
-        net_c: '+193,106', pct: '+29.3%', co2e: '+708,120', ann: '+17,555',
-        growth: '21.5k ha', loss: '809 ha', note: 'Decadal Full-Park Survey (22.5k ha)'
+    // Exact Decadal Statistics from Full Outer Join Audit
+    const METRICS = {
+      delta: {
+        stat1_label: 'Net Carbon Change (2009➔2020)',
+        stat1_val: '+316,293 <span style="font-size:11px; font-weight:normal;">tC (+50.1%)</span>',
+        stat1_color: '#34d399',
+        stat2_label: 'Net CO₂ Sequestered',
+        stat2_val: '+1,159,848 <span style="font-size:11px; font-weight:normal;">tCO₂e</span>',
+        stat3_label: 'Annual Sequestration',
+        stat3_val: '+28,754 <span style="font-size:11px; font-weight:normal;">tC/yr</span>',
+        stat4_label: 'Canopy Growth vs Felled',
+        stat4_val: '<span style="color:#10b981;">▲ 24,934 ha</span> <span style="color:#ef4444; margin-left:6px;">▼ 907 ha</span>'
       },
-      '2009_2024': {
-        net_c: '+24,274', pct: '+60.4%', co2e: '+89,014', ann: '+1,618',
-        growth: '1,317 ha', loss: '78 ha', note: '15-Year Repeat Survey (1.4k ha)'
+      t2: {
+        stat1_label: 'Total Modern Carbon (2020)',
+        stat1_val: '947,837 <span style="font-size:11px; font-weight:normal;">tC</span>',
+        stat1_color: '#10b981',
+        stat2_label: 'Modern CO₂ Equivalent (2020)',
+        stat2_val: '3,475,720 <span style="font-size:11px; font-weight:normal;">tCO₂e</span>',
+        stat3_label: 'Woodland Canopy Area (2020)',
+        stat3_val: '26,391 ha',
+        stat4_label: 'Mean Carbon Density (2020)',
+        stat4_val: '35.9 <span style="font-size:11px; font-weight:normal;">tC/ha</span>'
       },
-      '2009_2017': {
-        net_c: '+94,433', pct: '+39.5%', co2e: '+346,285', ann: '+11,804',
-        growth: '6.9k ha', loss: '933 ha', note: 'Midterm Monitoring Swath (8.0k ha)'
-      },
-      '2017_2020': {
-        net_c: '-26,974', pct: '-7.9%', co2e: '-98,913', ann: '-8,991',
-        growth: '2,580 ha', loss: '5,468 ha', note: 'Midterm to National LiDAR Overlap (8.2k ha)'
-      },
-      '2017_2024': {
-        net_c: '+6,191', pct: '+10.8%', co2e: '+22,702', ann: '+884',
-        growth: '833 ha', loss: '501 ha', note: 'Midterm to Repeat Overlap (1.4k ha)'
-      },
-      '2020_2024': {
-        net_c: '+12,864', pct: '+23.9%', co2e: '+47,171', ann: '+3,216',
-        growth: '1,258 ha', loss: '165 ha', note: 'Recent Flights Overlap (1.4k ha)'
+      t1: {
+        stat1_label: 'Total Baseline Carbon (2009)',
+        stat1_val: '631,544 <span style="font-size:11px; font-weight:normal;">tC</span>',
+        stat1_color: '#fbbf24',
+        stat2_label: 'Baseline CO₂ Equivalent (2009)',
+        stat2_val: '2,315,879 <span style="font-size:11px; font-weight:normal;">tCO₂e</span>',
+        stat3_label: 'Woodland Canopy Area (2009)',
+        stat3_val: '25,650 ha',
+        stat4_label: 'Mean Carbon Density (2009)',
+        stat4_val: '24.6 <span style="font-size:11px; font-weight:normal;">tC/ha</span>'
       }
     };
 
-    const SINGLE_STATS = {
-      '2009': {
-        total_c: '658,717', co2e: '2,415,516', area: '22,461 ha', density: '29.3',
-        label: 'Historical Baseline (2009)'
-      },
-      '2017': {
-        total_c: '346,100', co2e: '1,269,149', area: '8,296 ha', density: '41.7',
-        label: 'Midterm Survey Swath (2017)'
-      },
-      '2020': {
-        total_c: '878,105', co2e: '3,220,010', area: '23,153 ha', density: '37.9',
-        label: 'Modern National LiDAR (2020)'
-      },
-      '2024': {
-        total_c: '66,742', co2e: '244,744', area: '1,457 ha', density: '45.8',
-        label: 'Recent Repeat Flights (2024)'
-      }
-    };
-
-    function getPaintExpression(mode, y1, y2) {
-      const p1 = 'd' + y1.slice(-2);
-      const p2 = 'd' + y2.slice(-2);
-
+    function getPaintExpression(mode) {
       if (mode === 'delta') {
         return [
           'interpolate',
           ['linear'],
-          ['-',
-            ['coalesce', ['get', p2], ['get', 'd20'], 0],
-            ['coalesce', ['get', p1], ['get', 'd09'], 0]
-          ],
-          -40, '#dc2626', // Deep red felling/loss
-          -20, '#ef4444', // Red
-          -5, '#fca5a5',  // Light red
-          0, 'rgba(148, 163, 184, 0.45)', // Stable neutral slate
-          5, '#86efac',   // Light green (growth)
-          20, '#10b981',  // Emerald green
-          40, '#064e3b'   // Forest cyan-green (high sequestration)
+          ['coalesce', ['get', 'dd'], 0],
+          -40, '#dc2626', // Deep red clear-felling
+          -20, '#ef4444', // Red felling/loss
+          -5,  '#fca5a5', // Light red thinning
+          0,   'rgba(148, 163, 184, 0.45)', // Stable neutral slate
+          5,   '#86efac', // Light green initial regrowth
+          20,  '#10b981', // Emerald green vigorous growth
+          40,  '#064e3b'  // Deep forest green high sequestration
         ];
       } else if (mode === 't2') {
         return [
           'interpolate',
           ['linear'],
-          ['coalesce', ['get', p2], ['get', 'd20'], 0],
-          0, '#86efac',
-          30, '#34d399',
-          60, '#10b981',
-          90, '#059669',
+          ['coalesce', ['get', 'd20'], 0],
+          0,   'rgba(239, 68, 68, 0.4)', // 0 density / felled
+          10,  '#86efac',
+          30,  '#34d399',
+          60,  '#10b981',
+          90,  '#059669',
           120, '#047857',
           150, '#f59e0b'
         ];
@@ -481,11 +498,12 @@
         return [
           'interpolate',
           ['linear'],
-          ['coalesce', ['get', p1], ['get', 'd09'], 0],
-          0, '#86efac',
-          30, '#34d399',
-          60, '#10b981',
-          90, '#059669',
+          ['coalesce', ['get', 'd09'], 0],
+          0,   'rgba(148, 163, 184, 0.3)',
+          10,  '#86efac',
+          30,  '#34d399',
+          60,  '#10b981',
+          90,  '#059669',
           120, '#047857',
           150, '#f59e0b'
         ];
@@ -524,7 +542,7 @@
             source: 'carbon_source',
             'source-layer': 'carbon_temporal',
             paint: {
-              'fill-color': getPaintExpression('delta', '2009', '2020'),
+              'fill-color': getPaintExpression('delta'),
               'fill-opacity': 0.85
             }
           },
@@ -535,8 +553,8 @@
             'source-layer': 'carbon_temporal',
             paint: {
               'line-color': '#064e3b',
-              'line-width': 0.4,
-              'line-opacity': 0.4
+              'line-width': 0.35,
+              'line-opacity': 0.35
             }
           },
           {
@@ -560,23 +578,11 @@
     map.addControl(new maplibregl.NavigationControl(), 'top-right');
     map.addControl(new maplibregl.ScaleControl({ maxWidth: 100, unit: 'metric' }), 'bottom-left');
 
-    function updateMapPaint() {
-      const y1 = document.getElementById('select-t1').value;
-      const y2 = document.getElementById('select-t2').value;
-      const expr = getPaintExpression(currentMode, y1, y2);
-      if (map.getLayer('carbon-squares-fill')) {
-        map.setPaintProperty('carbon-squares-fill', 'fill-color', expr);
-      }
-    }
-
     function setMode(mode) {
       currentMode = mode;
       document.getElementById('btn-delta').classList.toggle('active', mode === 'delta');
       document.getElementById('btn-t2').classList.toggle('active', mode === 't2');
       document.getElementById('btn-t1').classList.toggle('active', mode === 't1');
-
-      const y1 = document.getElementById('select-t1').value;
-      const y2 = document.getElementById('select-t2').value;
 
       const bar = document.getElementById('legend-bar');
       const lTitle = document.getElementById('legend-title-text');
@@ -585,115 +591,52 @@
 
       if (mode === 'delta') {
         bar.className = 'legend-bar-delta';
-        lTitle.innerText = `Net Change (${y1} ➔ ${y2})`;
+        lTitle.innerText = 'Net Change (2009 ➔ 2020)';
         lUnit.innerText = 'Δ tC / ha';
-        lLabels.innerHTML = '<span style="color:#ef4444;">-30 (Loss)</span><span style="color:#94a3b8;">0 (Stable)</span><span style="color:#10b981;">+30+ (Growth)</span>';
+        lUnit.style.color = '#34d399';
+        lLabels.innerHTML = '<span style="color:#ef4444;">-40 (Felled)</span><span style="color:#94a3b8;">0 (Stable)</span><span style="color:#10b981;">+40+ (Growth)</span>';
       } else if (mode === 't2') {
         bar.className = 'legend-bar-density';
-        lTitle.innerText = `${y2} Carbon Stock`;
+        lTitle.innerText = '2020 Modern Carbon Stock';
         lUnit.innerText = 'tC / ha';
-        lLabels.innerHTML = '<span>0.1</span><span>30</span><span>60</span><span>90</span><span>120</span><span>150+</span>';
+        lUnit.style.color = '#10b981';
+        lLabels.innerHTML = '<span>0</span><span>30</span><span>60</span><span>90</span><span>120</span><span>150+</span>';
       } else if (mode === 't1') {
         bar.className = 'legend-bar-density';
-        lTitle.innerText = `${y1} Carbon Stock`;
+        lTitle.innerText = '2009 Baseline Carbon Stock';
         lUnit.innerText = 'tC / ha';
-        lLabels.innerHTML = '<span>0.1</span><span>30</span><span>60</span><span>90</span><span>120</span><span>150+</span>';
+        lUnit.style.color = '#fbbf24';
+        lLabels.innerHTML = '<span>0</span><span>30</span><span>60</span><span>90</span><span>120</span><span>150+</span>';
       }
 
-      updateMapPaint();
-      updateStatsView(mode);
+      if (map.getLayer('carbon-squares-fill')) {
+        map.setPaintProperty('carbon-squares-fill', 'fill-color', getPaintExpression(mode));
+      }
+
+      // Update KPI figures
+      const m = METRICS[mode];
+      document.getElementById('label-stat-1').innerText = m.stat1_label;
+      document.getElementById('val-stat-1').innerHTML = m.stat1_val;
+      document.getElementById('val-stat-1').style.color = m.stat1_color;
+
+      document.getElementById('label-stat-2').innerText = m.stat2_label;
+      document.getElementById('val-stat-2').innerHTML = m.stat2_val;
+
+      document.getElementById('label-stat-3').innerText = m.stat3_label;
+      document.getElementById('val-stat-3').innerHTML = m.stat3_val;
+
+      document.getElementById('label-stat-4').innerText = m.stat4_label;
+      document.getElementById('val-stat-4').innerHTML = m.stat4_val;
     }
 
-    function updateStatsView(mode) {
-      const y1 = document.getElementById('select-t1').value;
-      const y2 = document.getElementById('select-t2').value;
-
-      if (mode === 'delta') {
-        const pairKey = `${y1}_${y2}`;
-        const st = PAIR_STATS[pairKey] || {
-          net_c: '--', pct: '--', co2e: '--', ann: '--', growth: '--', loss: '--'
-        };
-
-        const isPositive = !st.net_c.startsWith('-');
-        const cColor = isPositive ? '#34d399' : '#f87171';
-
-        document.getElementById('label-stat-1').innerText = `Net Carbon Change (${y1}➔${y2})`;
-        document.getElementById('val-stat-1').innerHTML = `${st.net_c} <span style="font-size:11px; font-weight:normal;">tC (${st.pct})</span>`;
-        document.getElementById('val-stat-1').style.color = cColor;
-
-        document.getElementById('label-stat-2').innerText = 'Net CO₂ Sequestered';
-        document.getElementById('val-stat-2').innerHTML = `${st.co2e} <span style="font-size:11px; font-weight:normal;">tCO₂e</span>`;
-
-        document.getElementById('label-stat-3').innerText = 'Annual Sequestration';
-        document.getElementById('val-stat-3').innerHTML = `${st.ann} <span style="font-size:11px; font-weight:normal;">tC/yr</span>`;
-
-        document.getElementById('label-stat-4').innerText = 'Canopy Growth vs Loss';
-        document.getElementById('val-stat-4').innerHTML = `<span style="color:#10b981;">▲ ${st.growth}</span> <span style="color:#ef4444; margin-left:6px;">▼ ${st.loss}</span>`;
-      } else if (mode === 't2') {
-        const st = SINGLE_STATS[y2] || SINGLE_STATS['2020'];
-
-        document.getElementById('label-stat-1').innerText = `Total Stored Carbon (${y2})`;
-        document.getElementById('val-stat-1').innerHTML = `${st.total_c} <span style="font-size:11px; font-weight:normal;">tC</span>`;
-        document.getElementById('val-stat-1').style.color = '#10b981';
-
-        document.getElementById('label-stat-2').innerText = `CO₂ Equivalent (${y2})`;
-        document.getElementById('val-stat-2').innerHTML = `${st.co2e} <span style="font-size:11px; font-weight:normal;">tCO₂e</span>`;
-
-        document.getElementById('label-stat-3').innerText = `Survey Canopy Area (${y2})`;
-        document.getElementById('val-stat-3').innerHTML = `${st.area}`;
-
-        document.getElementById('label-stat-4').innerText = `Mean Density (${y2})`;
-        document.getElementById('val-stat-4').innerHTML = `${st.density} <span style="font-size:11px; font-weight:normal;">tC/ha</span>`;
-      } else if (mode === 't1') {
-        const st = SINGLE_STATS[y1] || SINGLE_STATS['2009'];
-
-        document.getElementById('label-stat-1').innerText = `Total Stored Carbon (${y1})`;
-        document.getElementById('val-stat-1').innerHTML = `${st.total_c} <span style="font-size:11px; font-weight:normal;">tC</span>`;
-        document.getElementById('val-stat-1').style.color = '#fbbf24';
-
-        document.getElementById('label-stat-2').innerText = `CO₂ Equivalent (${y1})`;
-        document.getElementById('val-stat-2').innerHTML = `${st.co2e} <span style="font-size:11px; font-weight:normal;">tCO₂e</span>`;
-
-        document.getElementById('label-stat-3').innerText = `Survey Canopy Area (${y1})`;
-        document.getElementById('val-stat-3').innerHTML = `${st.area}`;
-
-        document.getElementById('label-stat-4').innerText = `Mean Density (${y1})`;
-        document.getElementById('val-stat-4').innerHTML = `${st.density} <span style="font-size:11px; font-weight:normal;">tC/ha</span>`;
-      }
-    }
-
-    function onDateChanged() {
-      let y1 = document.getElementById('select-t1').value;
-      let y2 = document.getElementById('select-t2').value;
-
-      // Maintain valid temporal order
-      if (parseInt(y1) >= parseInt(y2)) {
-        if (y1 === '2020') {
-          document.getElementById('select-t2').value = '2024';
-          y2 = '2024';
-        } else if (y1 === '2017') {
-          document.getElementById('select-t2').value = '2020';
-          y2 = '2020';
-        } else {
-          document.getElementById('select-t2').value = '2020';
-          y2 = '2020';
-        }
-      }
-
-      document.getElementById('btn-t1').innerText = `🌲 ${y1} Stock`;
-      document.getElementById('btn-t2').innerText = `🌲 ${y2} Stock`;
-
-      const lTitle = document.getElementById('legend-title-text');
-      if (currentMode === 'delta') {
-        lTitle.innerText = `Net Change (${y1} ➔ ${y2})`;
-      } else if (currentMode === 't2') {
-        lTitle.innerText = `${y2} Carbon Stock`;
-      } else if (currentMode === 't1') {
-        lTitle.innerText = `${y1} Carbon Stock`;
-      }
-
-      updateMapPaint();
-      updateStatsView(currentMode);
+    function flyToLoc(lng, lat, zoom) {
+      map.flyTo({
+        center: [lng, lat],
+        zoom: zoom,
+        speed: 1.2,
+        curve: 1.4,
+        essential: true
+      });
     }
 
     function toggleLayer(type, visible) {
@@ -704,42 +647,6 @@
       } else if (type === 'boundary') {
         if (map.getLayer('ldnp-boundary-line')) map.setLayoutProperty('ldnp-boundary-line', 'visibility', val);
       }
-    }
-
-    function renderTimelineSparkline(tlStr) {
-      if (!tlStr) return '';
-      const pts = tlStr.split('|').map(s => {
-        const parts = s.split(':');
-        return { yr: `'${parts[0]}`, h: parseFloat(parts[1]) };
-      });
-      if (pts.length < 2) return '';
-      const maxH = Math.max(...pts.map(p => p.h), 15);
-      const w = 210, h = 34;
-      const barW = Math.max(12, Math.floor(w / (pts.length * 2.2)));
-      let bars = '';
-      pts.forEach((p, idx) => {
-        const x = 18 + idx * Math.floor((w - 36) / (pts.length - 1 || 1));
-        const barHeight = Math.max(4, Math.round((p.h / maxH) * (h - 12)));
-        const y = h - barHeight - 2;
-        const isLatest = idx === pts.length - 1;
-        const color = isLatest ? '#10b981' : '#38bdf8';
-        bars += `
-          <rect x="${x - barW/2}" y="${y}" width="${barW}" height="${barHeight}" rx="2" fill="${color}" opacity="0.85"/>
-          <text x="${x}" y="${h + 9}" font-size="9" fill="#94a3b8" text-anchor="middle">${p.yr}</text>
-          <text x="${x}" y="${y - 2}" font-size="9" fill="#f8fafc" text-anchor="middle" font-weight="bold">${p.h}m</text>
-        `;
-      });
-      return `
-        <div style="margin-top: 8px; padding-top: 6px; border-top: 1px dashed rgba(51, 65, 85, 0.7);">
-          <div style="font-size: 10px; color: #94a3b8; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.5px; display:flex; justify-content:space-between;">
-            <span>Canopy Height History</span>
-            <span style="color:#10b981; font-weight:bold;">${pts[0].yr} ➔ ${pts[pts.length-1].yr}</span>
-          </div>
-          <svg width="100%" height="46" viewBox="0 0 ${w} 46" style="overflow: visible;">
-            ${bars}
-          </svg>
-        </div>
-      `;
     }
 
     const popup = new maplibregl.Popup({
@@ -758,79 +665,91 @@
       map.getCanvas().style.cursor = 'pointer';
       if (e.features.length > 0) {
         const p = e.features[0].properties;
-        const y1 = document.getElementById('select-t1').value;
-        const y2 = document.getElementById('select-t2').value;
-        const p1 = 'd' + y1.slice(-2);
-        const p2 = 'd' + y2.slice(-2);
+        const d09 = typeof p.d09 === 'number' ? p.d09 : parseFloat(p.d09 || 0);
+        const d20 = typeof p.d20 === 'number' ? p.d20 : parseFloat(p.d20 || 0);
+        const h09 = typeof p.h09 === 'number' ? p.h09 : parseFloat(p.h09 || 0);
+        const h20 = typeof p.h20 === 'number' ? p.h20 : parseFloat(p.h20 || 0);
+        const dd  = typeof p.dd  === 'number' ? p.dd  : parseFloat(p.dd  || (d20 - d09));
+        const dh  = typeof p.dh  === 'number' ? p.dh  : parseFloat(p.dh  || (h20 - h09));
 
-        // Density observations for selected years
-        const d1 = p[p1] !== undefined ? p[p1] : (y1 === '2009' ? (p.d09 !== undefined ? p.d09 : p.db) : null);
-        const d2 = p[p2] !== undefined ? p[p2] : (y2 === '2020' ? (p.d20 !== undefined ? p.d20 : p.dn) : (y2 === '2024' ? p.d24 : null));
+        const deltaTonnes = (dd * 0.04).toFixed(2);
+        const deltaTonnesPrefix = dd > 0 ? '+' : '';
+        const deltaDensPrefix = dd > 0 ? '+' : '';
+        const dhPrefix = dh > 0 ? '+' : '';
 
-        const has1 = d1 !== null && d1 !== undefined;
-        const has2 = d2 !== null && d2 !== undefined;
-
-        const effD1 = has1 ? d1 : (p.d09 !== undefined ? p.d09 : p.db);
-        const effD2 = has2 ? d2 : (p.d20 !== undefined ? p.d20 : p.dn);
-
-        const deltaDens = (effD2 - effD1).toFixed(1);
-        const deltaTonnes = (deltaDens * 0.04).toFixed(2);
-        const deltaTonnesPrefix = deltaTonnes > 0 ? '+' : '';
-        const deltaDensPrefix = deltaDens > 0 ? '+' : '';
-        const pct = effD1 > 0 ? (((effD2 - effD1) / effD1) * 100).toFixed(1) : '0.0';
-        const pctPrefix = pct > 0 ? '+' : '';
-
+        // Badge & Color Logic
         let badgeHtml = '';
         let deltaColor = '#34d399';
 
-        if (!has2 && y2 === '2024') {
-          badgeHtml = `<span class="badge-stable">● NOT REFLOWN IN '24</span>`;
-          deltaColor = '#94a3b8';
-        } else if (!has1 && y1 === '2017') {
-          badgeHtml = `<span class="badge-stable">● NO '17 FLIGHT</span>`;
-          deltaColor = '#94a3b8';
-        } else if (parseFloat(deltaDens) > 0.5) {
-          badgeHtml = `<span class="badge-gain">▲ GROWTH (${pctPrefix}${pct}%)</span>`;
-          deltaColor = '#34d399';
-        } else if (parseFloat(deltaDens) < -0.5) {
-          badgeHtml = `<span class="badge-loss">▼ LOSS / FELLED (${pctPrefix}${pct}%)</span>`;
+        if (d20 <= 0.1 && d09 >= 5.0) {
+          badgeHtml = `<span class="badge-felled">▼ CLEAR-FELLED (-100%)</span>`;
+          deltaColor = '#dc2626';
+        } else if (dd < -1.0) {
+          const pct = d09 > 0 ? Math.round(((d20 - d09) / d09) * 100) : -100;
+          badgeHtml = `<span class="badge-loss">▼ LOSS / THINNED (${pct}%)</span>`;
           deltaColor = '#f87171';
+        } else if (dd > 1.0) {
+          const pct = d09 > 0 ? Math.round(((d20 - d09) / d09) * 100) : 100;
+          badgeHtml = `<span class="badge-gain">▲ GROWTH (+${pct}%)</span>`;
+          deltaColor = '#34d399';
         } else {
-          badgeHtml = `<span class="badge-stable">● STABLE</span>`;
+          badgeHtml = `<span class="badge-stable">● STABLE CANOPY</span>`;
           deltaColor = '#94a3b8';
         }
 
-        const c1Val = (effD1 * 0.04).toFixed(2);
-        const c2Val = (effD2 * 0.04).toFixed(2);
-        const dhPrefix = p.dh > 0 ? '+' : '';
-        const sparklineHtml = renderTimelineSparkline(p.tl);
+        const c09 = (d09 * 0.04).toFixed(2);
+        const c20 = (d20 * 0.04).toFixed(2);
+
+        // Visual Canopy Height Bar comparison
+        const maxH = Math.max(h09, h20, 15);
+        const bar09 = Math.round((h09 / maxH) * 40);
+        const bar20 = Math.round((h20 / maxH) * 40);
 
         popup.setLngLat(e.lngLat)
           .setHTML(`
-            <div style="min-width: 230px;">
-              <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid #334155; padding-bottom: 4px; margin-bottom: 6px;">
+            <div style="min-width: 240px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid #334155; padding-bottom: 5px; margin-bottom: 6px;">
                 <div>
                   <strong style="color: #38bdf8; font-size: 13px;">${p.type || 'Woodland'}</strong>
-                  <span style="font-size:10px; color:#94a3b8; margin-left:4px;">(${y1} ➔ ${y2})</span>
+                  <span style="font-size:10px; color:#94a3b8; margin-left:4px;">(20m Cell)</span>
                 </div>
                 ${badgeHtml}
               </div>
               <div style="font-size: 12px; line-height: 1.6; color: #cbd5e1;">
-                <div><strong>Net Carbon Delta:</strong> <span style="color:${deltaColor}; font-weight:bold;">${deltaTonnesPrefix}${deltaTonnes} tC</span> (${deltaDensPrefix}${deltaDens} tC/ha)</div>
-                <div><strong>Height Growth (Δh90):</strong> <span style="color:#38bdf8; font-weight:bold;">${dhPrefix}${p.dh} m</span></div>
+                <div><strong>Decadal Carbon Delta:</strong> <span style="color:${deltaColor}; font-weight:bold;">${deltaTonnesPrefix}${deltaTonnes} tC</span> (${deltaDensPrefix}${dd.toFixed(1)} tC/ha)</div>
+                <div><strong>Canopy Height Delta:</strong> <span style="color:#38bdf8; font-weight:bold;">${dhPrefix}${dh.toFixed(1)} m</span> (${h09.toFixed(1)}m ➔ ${h20.toFixed(1)}m)</div>
                 
-                <div style="margin-top: 8px; padding-top: 6px; border-top: 1px dashed rgba(51, 65, 85, 0.7); font-size: 11px; color: #94a3b8;">
-                  <div style="display:flex; justify-content:space-between;">
-                    <span>${y1} ${has1 ? 'Baseline' : '(Prior Base)'}:</span>
-                    <strong style="color:#f8fafc;">${effD1} tC/ha</strong> <span>(${c1Val} tC)</span>
+                <div style="margin-top: 8px; padding-top: 6px; border-top: 1px dashed rgba(51, 65, 85, 0.7); font-size: 11px;">
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="color:#94a3b8;">2009 Baseline:</span>
+                    <strong style="color:#f8fafc;">${d09.toFixed(1)} tC/ha</strong> 
+                    <span style="color:#94a3b8;">(${c09} tC)</span>
                   </div>
-                  <div style="display:flex; justify-content:space-between; margin-top:2px;">
-                    <span>${y2} ${has2 ? 'Survey' : '(Latest: 2020)'}:</span>
-                    <strong style="color:#34d399;">${effD2} tC/ha</strong> <span>(${c2Val} tC)</span>
+                  <div style="display:flex; justify-content:space-between; align-items:center; margin-top:2px;">
+                    <span style="color:#94a3b8;">2020 Modern:</span>
+                    <strong style="color:${d20 === 0 ? '#ef4444' : '#34d399'};">${d20.toFixed(1)} tC/ha</strong> 
+                    <span style="color:#94a3b8;">(${c20} tC)</span>
                   </div>
                 </div>
 
-                ${sparklineHtml}
+                <!-- Height Bars -->
+                <div style="margin-top: 8px; padding-top: 6px; border-top: 1px dashed rgba(51, 65, 85, 0.7);">
+                  <div style="display:flex; justify-content:space-between; font-size:10px; color:#94a3b8; margin-bottom:3px;">
+                    <span>Canopy Profile</span>
+                    <span>2009 (${h09}m) vs 2020 (${h20}m)</span>
+                  </div>
+                  <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items:end; height:32px; background:rgba(30,41,59,0.5); padding: 4px 10px; border-radius:4px;">
+                    <div style="display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;">
+                      <div style="width:24px; height:${Math.max(bar09, 3)}px; background:#fbbf24; border-radius:2px;"></div>
+                      <span style="font-size:9px; color:#94a3b8; margin-top:2px;">'09</span>
+                    </div>
+                    <div style="display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;">
+                      <div style="width:24px; height:${Math.max(bar20, 2)}px; background:${d20 === 0 ? '#ef4444' : '#10b981'}; border-radius:2px;"></div>
+                      <span style="font-size:9px; color:#94a3b8; margin-top:2px;">'20</span>
+                    </div>
+                  </div>
+                </div>
+
               </div>
             </div>
           `)

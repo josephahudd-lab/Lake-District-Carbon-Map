@@ -94,22 +94,25 @@ def build_composite_pyramid():
     baseline_candidates = [
         os.path.join(OUTPUT_DIR, "lake_district_carbon_2009.csv"),
         os.path.join(OUTPUT_DIR, "lake_district_carbon_baseline.csv"),
+        os.path.join(OUTPUT_DIR, "lake_district_carbon_baseline_carbon.csv"),
         os.path.join(OUTPUT_DIR, "2009", "lake_district_carbon.csv"),
         os.path.join(OUTPUT_DIR, "baseline", "lake_district_carbon.csv"),
     ]
     baseline_csv = next((p for p in baseline_candidates if os.path.exists(p)), None)
 
     midterm_candidates = [
-        os.path.join(OUTPUT_DIR, "lake_district_carbon_2017.csv"),
+        os.path.join(OUTPUT_DIR, "lake_district_carbon_midterm_carbon.csv"),
         os.path.join(OUTPUT_DIR, "lake_district_carbon_midterm.csv"),
+        os.path.join(OUTPUT_DIR, "lake_district_carbon_2017.csv"),
         os.path.join(OUTPUT_DIR, "2017", "lake_district_carbon.csv"),
         os.path.join(OUTPUT_DIR, "midterm", "lake_district_carbon.csv"),
     ]
     midterm_csv = next((p for p in midterm_candidates if os.path.exists(p)), None)
 
     recent_candidates = [
-        os.path.join(OUTPUT_DIR, "lake_district_carbon_2024.csv"),
+        os.path.join(OUTPUT_DIR, "lake_district_carbon_recent_carbon.csv"),
         os.path.join(OUTPUT_DIR, "lake_district_carbon_recent.csv"),
+        os.path.join(OUTPUT_DIR, "lake_district_carbon_2024.csv"),
         os.path.join(OUTPUT_DIR, "2024", "lake_district_carbon.csv"),
         os.path.join(OUTPUT_DIR, "recent", "lake_district_carbon.csv"),
     ]

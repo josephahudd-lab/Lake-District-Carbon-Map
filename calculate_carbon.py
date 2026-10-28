@@ -91,6 +91,9 @@ def process_with_geopandas(csv_path: str, nfi_path: str, out_prefix: str, cell_s
     elif out_prefix.endswith("_carbon"):
         out_csv = f"{out_prefix}.csv"
         out_gpkg = f"{out_prefix}.gpkg"
+    elif "_carbon" in out_prefix:
+        out_csv = f"{out_prefix}.csv"
+        out_gpkg = f"{out_prefix}.gpkg"
     else:
         out_csv = f"{out_prefix}_carbon.csv"
         out_gpkg = f"{out_prefix}_carbon.gpkg"
@@ -175,6 +178,9 @@ def process_with_gdal(csv_path: str, nfi_path: str, out_prefix: str, cell_size: 
         out_csv = out_prefix
         out_gpkg = out_prefix[:-4] + ".gpkg"
     elif out_prefix.endswith("_carbon"):
+        out_csv = f"{out_prefix}.csv"
+        out_gpkg = f"{out_prefix}.gpkg"
+    elif "_carbon" in out_prefix:
         out_csv = f"{out_prefix}.csv"
         out_gpkg = f"{out_prefix}.gpkg"
     else:

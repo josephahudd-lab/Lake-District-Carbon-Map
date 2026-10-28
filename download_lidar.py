@@ -152,21 +152,91 @@ def filter_tiles_by_boundary(tiles: List[Dict], boundary_geojson_path: str) -> L
     print(f"Boundary filter applied: {len(kept)} tiles intersect National Park ({dropped} non-park tiles excluded early).")
     return kept
 
-def download_and_extract_tile(tile_info: Dict, out_dir: str, keep_zip: bool = False, max_retries: int = 3) -> str:
-    """Download a single tile zip and extract the .laz directly into out_dir with year fallback and retry"""
+def validate_laz_file(path: str) -> bool:
+    """Verifies that a .laz file exists, is non-empty (>1KB), and has valid LASF magic header."""
+    try:
+        if not os.path.exists(path) or os.path.getsize(path) < 1024:
+            return False
+        with open(path, "rb") as f:
+            return f.read(4) == b"LASF"
+    except Exception:
+        return False
+
+def sub_to_parent_5km(sub_id: str) -> Optional[str]:
+    """Map 1km sub-tile ID (e.g. SD3893 or NY2321) to its parent 5km tile ID (e.g. SD3590 or NY2020)"""
+    if len(sub_id) < 6:
+        return None
+    prefix = sub_id[:2].upper()
+    try:
+        x = int(sub_id[2:4])
+        y = int(sub_id[4:6])
+        parent_x = (x // 5) * 5
+        parent_y = (y // 5) * 5
+        return f"{prefix}{parent_x:02d}{parent_y:02d}"
+    except ValueError:
+        return None
+
+def get_manifest_path(out_dir: str) -> str:
+    return os.path.join(out_dir, ".download_manifest.json")
+
+def load_manifest(out_dir: str) -> Dict[str, Dict]:
+    """Loads manifest, auto-discovering and validating existing .laz files on disk."""
+    manifest_file = get_manifest_path(out_dir)
+    manifest = {}
+    if os.path.exists(manifest_file):
+        try:
+            with open(manifest_file, "r") as f:
+                manifest = json.load(f)
+        except Exception:
+            manifest = {}
+
+    if os.path.exists(out_dir):
+        disk_files = [f for f in os.listdir(out_dir) if f.lower().endswith(".laz")]
+        for f in disk_files:
+            full_p = os.path.join(out_dir, f)
+            if not validate_laz_file(full_p):
+                continue
+            parent = sub_to_parent_5km(f)
+            if parent:
+                if parent not in manifest:
+                    manifest[parent] = {
+                        "status": "ok",
+                        "files": [f],
+                        "ts": os.path.getmtime(full_p)
+                    }
+                elif f not in manifest[parent].get("files", []):
+                    manifest[parent]["files"].append(f)
+    return manifest
+
+def save_manifest(out_dir: str, manifest: Dict[str, Dict]):
+    manifest_file = get_manifest_path(out_dir)
+    tmp_file = manifest_file + ".tmp"
+    with open(tmp_file, "w") as f:
+        json.dump(manifest, f, indent=2)
+    os.replace(tmp_file, manifest_file)
+
+def is_tile_verified(tile_id: str, out_dir: str, manifest: Dict[str, Dict]) -> bool:
+    """Checks if 5km tile is recorded and all its extracted .laz files are valid on disk."""
+    if tile_id not in manifest:
+        return False
+    entry = manifest[tile_id]
+    if entry.get("status") != "ok":
+        return False
+    files = entry.get("files", [])
+    if not files:
+        return False
+    for f in files:
+        if not validate_laz_file(os.path.join(out_dir, f)):
+            return False
+    return True
+
+def download_and_extract_tile(tile_info: Dict, out_dir: str, candidate_years: List[str], max_retries: int = 3) -> tuple:
+    """Download a single tile zip and extract the .laz directly into out_dir with chunked streaming and LAZ header validation."""
     tile_id = tile_info["tile"]["id"]
     year = tile_info["year"]["id"]
     base_uri = tile_info["uri"]
 
     os.makedirs(out_dir, exist_ok=True)
-
-    # Check if a .laz file for this tile already exists
-    existing = [f for f in os.listdir(out_dir) if f.startswith(tile_id) and f.endswith(".laz")]
-    if existing:
-        return f"[SKIP] {tile_id} ({year}) already exists: {existing[0]}"
-
-    # Fallback survey years to check if the cataloged year returns 403/404
-    candidate_years = [year] + [y for y in ["2022", "2021", "2020", "2019", "2018"] if y != year]
 
     last_error = None
     for cand_year in candidate_years:
@@ -178,13 +248,21 @@ def download_and_extract_tile(tile_info: Dict, out_dir: str, keep_zip: bool = Fa
             req = urllib.request.Request(download_url, headers=BROWSER_HEADERS)
 
             try:
-                with urllib.request.urlopen(req, timeout=120) as resp:
+                with urllib.request.urlopen(req, timeout=90) as resp:
                     if resp.status != 200:
                         raise urllib.error.HTTPError(download_url, resp.status, "Non-200 status", resp.headers, None)
-                    data = resp.read()
+                    # Streaming chunked read to prevent partial buffers or connection drops
+                    buf = io.BytesIO()
+                    while True:
+                        chunk = resp.read(65536)
+                        if not chunk:
+                            break
+                        buf.write(chunk)
+                    data = buf.getvalue()
 
                 size_mb = len(data) / (1024 * 1024)
                 elapsed = time.time() - start_time
+                speed = size_mb / elapsed if elapsed > 0 else 0.0
 
                 # Extract LAZ from the downloaded zip in-memory
                 extracted_names = []
@@ -195,32 +273,31 @@ def download_and_extract_tile(tile_info: Dict, out_dir: str, keep_zip: bool = Fa
                             out_path = os.path.join(out_dir, filename)
                             with z.open(member) as source, open(out_path, "wb") as target:
                                 target.write(source.read())
+
+                            # Validate extracted LAZ file immediately
+                            if not validate_laz_file(out_path):
+                                if os.path.exists(out_path):
+                                    os.remove(out_path)
+                                raise ValueError(f"Extracted file {filename} is corrupt or missing LASF header")
                             extracted_names.append(filename)
 
-                if keep_zip:
-                    zip_path = os.path.join(out_dir, f"{tile_info.get('label', tile_id)}.zip")
-                    with open(zip_path, "wb") as zf:
-                        zf.write(data)
-
                 if extracted_names:
-                    ext_str = ", ".join(extracted_names)
-                    speed = size_mb / elapsed if elapsed > 0 else 0.0
                     note = f" (fallback year {cand_year})" if cand_year != year else ""
-                    return f"[OK] {tile_id}{note} -> {ext_str} ({size_mb:.1f} MB at {speed:.1f} MB/s)"
+                    return True, f"[OK] {tile_id}{note} -> {len(extracted_names)} LAZ tiles ({size_mb:.1f} MB at {speed:.1f} MB/s)", extracted_names
                 else:
-                    return f"[WARN] {tile_id} ({cand_year}) zip contained no .laz files ({size_mb:.1f} MB)"
+                    return False, f"[WARN] {tile_id} ({cand_year}) zip contained no .laz files ({size_mb:.1f} MB)", []
 
             except urllib.error.HTTPError as e:
                 last_error = e
                 # 403/404 usually means file is under a different year in Azure Blob storage
                 if e.code in (403, 404):
                     break # Break retry loop to try next candidate year
-                time.sleep(1.5 * attempt)
+                time.sleep(2.0 * attempt)
             except Exception as e:
                 last_error = e
-                time.sleep(1.5 * attempt)
+                time.sleep(2.0 * attempt)
 
-    return f"[ERROR] Failed downloading {tile_id} (tried years {candidate_years[:3]}): {str(last_error)}"
+    return False, f"[ERROR] Failed downloading {tile_id}: {str(last_error)}", []
 
 def main():
     parser = argparse.ArgumentParser(
@@ -292,6 +369,11 @@ def main():
         "--list",
         action="store_true",
         help="List available tiles without downloading"
+    )
+    parser.add_argument(
+        "--verify",
+        action="store_true",
+        help="Verify that all tiles for target query are downloaded and uncorrupted, then exit"
     )
 
     args = parser.parse_args()
@@ -367,6 +449,36 @@ def main():
     if args.limit > 0:
         tiles = tiles[:args.limit]
 
+    manifest = load_manifest(args.output_dir)
+
+    if args.verify:
+        verified = []
+        missing = []
+        for t in tiles:
+            tid = t["tile"]["id"]
+            if is_tile_verified(tid, args.output_dir, manifest):
+                verified.append(tid)
+            else:
+                missing.append(tid)
+
+        print("=======================================================")
+        print(" Defra LiDAR Download Pre-Flight Verification Gate")
+        print("=======================================================")
+        print(f" Target Directory : {args.output_dir}")
+        print(f" Total Expected   : {len(tiles)} 5km tiles")
+        print(f" Verified Valid   : {len(verified)} tiles")
+        print(f" Missing / Corrupt: {len(missing)} tiles")
+        print("=======================================================")
+        if missing:
+            print("\nMissing / Incomplete tiles:")
+            for m in missing:
+                print(f"  - {m}")
+            print("\n[ERROR] Dataset is incomplete! Run download first.")
+            sys.exit(1)
+        else:
+            print("\n[SUCCESS] Pre-flight verification passed: 100% of tiles verified valid!")
+            sys.exit(0)
+
     print("=======================================================")
     print(" Defra National LiDAR Programme Downloader")
     print("=======================================================")
@@ -386,28 +498,80 @@ def main():
         print("No matching tiles found for the given criteria.")
         return
 
-    # Check already downloaded count
     os.makedirs(args.output_dir, exist_ok=True)
-    existing_count = sum(1 for t in tiles if any(f.startswith(t["tile"]["id"]) and f.endswith(".laz") for f in os.listdir(args.output_dir)))
-    print(f"Already downloaded: {existing_count} / {len(tiles)} tiles.")
-    remaining = len(tiles) - existing_count
-    print(f"Remaining to fetch: {remaining} tiles (~{remaining * 150 / 1024:.1f} GB estimated).")
+    pending_tiles = [t for t in tiles if not is_tile_verified(t["tile"]["id"], args.output_dir, manifest)]
+    already_done = len(tiles) - len(pending_tiles)
+    print(f"Already downloaded & verified: {already_done} / {len(tiles)} tiles.")
+    print(f"Remaining to fetch           : {len(pending_tiles)} tiles.")
+
+    if not pending_tiles:
+        print("\n[SUCCESS] 100% of tiles are already downloaded and verified on disk!")
+        save_manifest(args.output_dir, manifest)
+        sys.exit(0)
+
     print("Starting download...\n")
 
-    completed = 0
-    with ThreadPoolExecutor(max_workers=args.threads) as executor:
-        futures = {
-            executor.submit(download_and_extract_tile, t, args.output_dir): t
-            for t in tiles
-        }
-        for future in as_completed(futures):
-            res = future.result()
-            completed += 1
-            print(f"[{completed}/{len(tiles)}] {res}")
+    # Multi-pass retry strategy with exponential backoff & concurrency reduction
+    passes = [
+        ("Pass 1 (Parallel)", max(1, min(args.threads, 4))),
+        ("Pass 2 (Retry on failed tiles)", 2),
+        ("Pass 3 (Sequential cool-down retry)", 1)
+    ]
+
+    failed_info = {}
+    for pass_idx, (pass_name, workers) in enumerate(passes):
+        if not pending_tiles:
+            break
+        print(f"\n--- {pass_name}: {len(pending_tiles)} tiles remaining (concurrency: {workers}) ---")
+        if pass_idx > 0:
+            time.sleep(4.0)
+
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            futures = {
+                executor.submit(download_and_extract_tile, t, args.output_dir, [str(t.get('year', {}).get('id'))]): t
+                for t in pending_tiles
+            }
+            next_pending = []
+            for future in as_completed(futures):
+                t_item = futures[future]
+                tid = t_item["tile"]["id"]
+                try:
+                    ok, msg, files = future.result()
+                    print(msg)
+                    if ok:
+                        manifest[tid] = {
+                            "status": "ok",
+                            "year": str(t_item.get("year", {}).get("id")),
+                            "files": files,
+                            "ts": time.time()
+                        }
+                        save_manifest(args.output_dir, manifest)
+                    else:
+                        next_pending.append(t_item)
+                        failed_info[tid] = msg
+                except Exception as ex:
+                    print(f"[ERROR] {tid}: {ex}")
+                    next_pending.append(t_item)
+                    failed_info[tid] = str(ex)
+
+        pending_tiles = next_pending
+
+    save_manifest(args.output_dir, manifest)
+
+    if pending_tiles:
+        print("\n=======================================================")
+        print(f"[INCOMPLETE] {len(pending_tiles)} of {len(tiles)} tiles failed to download after all retries:")
+        for t in pending_tiles:
+            tid = t["tile"]["id"]
+            print(f"  - {tid}: {failed_info.get(tid, 'Error during download')}")
+        print("=======================================================")
+        print("Aborting: pipeline will not proceed with missing data.")
+        sys.exit(1)
 
     print("\n-------------------------------------------------------")
-    print(f"All downloads finished! Files saved to: {args.output_dir}")
+    print(f"[SUCCESS] All {len(tiles)} tiles downloaded & verified! Files in: {args.output_dir}")
     print("=======================================================")
+    sys.exit(0)
 
 if __name__ == "__main__":
     main()

@@ -37,6 +37,7 @@ usage() {
   process-year Download, grid, and calculate carbon for a single year (e.g. ./pipeline.sh process-year 2009)
   epoch-run    Download, grid, and calculate an entire survey epoch (baseline, midterm, recent)
   epoch-build  Assemble all available survey epochs into the composite PMTiles pyramid
+  verify       Verify that all point cloud files are present and uncorrupted (e.g. ./pipeline.sh verify 2009)
 "
     echo ""
     echo "  normalize  (Optional/Legacy) Export pre-normalised LAZ files using PDAL TIN Delaunay"
@@ -109,8 +110,11 @@ case "$cmd" in
         YEAR_OUT="$OUTPUT_DIR/$YEAR"
         mkdir -p "$YEAR_RAW" "$YEAR_OUT"
 
-        echo "--- [1/4] Downloading $YEAR LiDAR Tiles from Defra ---"
-        python3 "$PROJECT_DIR/download_lidar.py" --year "$YEAR" -o "$YEAR_RAW" -t 4 "$@"
+        echo "--- [1/4] Downloading $YEAR LiDAR Tiles from Defra (Multi-Pass Auto-Retry) ---"
+        python3 "$PROJECT_DIR/download_lidar.py" --year "$YEAR" -o "$YEAR_RAW" -t 3 "$@"
+
+        echo "--- Pre-Flight Verification Gate: Ensuring 100% of files downloaded ---"
+        python3 "$PROJECT_DIR/download_lidar.py" --verify --year "$YEAR" -o "$YEAR_RAW" "$@"
 
         echo "--- [2/4] Running Rust Fast Grid Processor ($YEAR) ---"
         "$PROJECT_DIR/target/release/carbon_lidar" \
@@ -149,8 +153,11 @@ case "$cmd" in
         EPOCH_OUT="$OUTPUT_DIR/$EPOCH"
         mkdir -p "$EPOCH_RAW" "$EPOCH_OUT"
 
-        echo "--- [1/3] Downloading $EPOCH LiDAR Tiles from Defra ---"
-        python3 "$PROJECT_DIR/download_lidar.py" --epoch "$EPOCH" -o "$EPOCH_RAW" -t 4 "$@"
+        echo "--- [1/3] Downloading $EPOCH LiDAR Tiles from Defra (Multi-Pass Auto-Retry) ---"
+        python3 "$PROJECT_DIR/download_lidar.py" --epoch "$EPOCH" -o "$EPOCH_RAW" -t 3 "$@"
+
+        echo "--- Pre-Flight Verification Gate: Ensuring 100% of files downloaded ---"
+        python3 "$PROJECT_DIR/download_lidar.py" --verify --epoch "$EPOCH" -o "$EPOCH_RAW" "$@"
 
         echo "--- [2/3] Running Rust Fast Grid Processor ($EPOCH) ---"
         "$PROJECT_DIR/target/release/carbon_lidar" \
@@ -177,6 +184,18 @@ case "$cmd" in
         echo "======================================================="
         echo " Finished Epoch $EPOCH! Vector tiles updated in docs/"
         echo "======================================================="
+        ;;
+
+    verify)
+        TARGET="${1:-modern}"
+        echo "=== Pre-Flight Dataset Verification: $TARGET ==="
+        if [ "$TARGET" = "modern" ]; then
+            python3 "$PROJECT_DIR/download_lidar.py" --verify -o "$RAW_DIR"
+        elif [[ "$TARGET" =~ ^[0-9]{4}$ ]]; then
+            python3 "$PROJECT_DIR/download_lidar.py" --verify --year "$TARGET" -o "$DATA_DIR/raw/$TARGET"
+        else
+            python3 "$PROJECT_DIR/download_lidar.py" --verify --epoch "$TARGET" -o "$DATA_DIR/raw/$TARGET"
+        fi
         ;;
 
     epoch-build)

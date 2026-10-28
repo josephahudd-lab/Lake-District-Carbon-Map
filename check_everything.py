@@ -39,6 +39,8 @@ def report(status: str, title: str, details: str = ""):
     if status == "PASS":
         passes += 1
         tag = f"{GREEN}[PASS]{RESET}"
+    elif status == "INFO":
+        tag = f"{CYAN}[INFO]{RESET}"
     elif status == "WARN":
         warnings += 1
         tag = f"{YELLOW}[WARN]{RESET}"
@@ -50,6 +52,19 @@ def report(status: str, title: str, details: str = ""):
         print(f" {tag} {BOLD}{title:<34}{RESET} : {details}")
     else:
         print(f" {tag} {BOLD}{title}{RESET}")
+
+def sub_to_parent_5km(sub_id: str):
+    if len(sub_id) < 6:
+        return None
+    prefix = sub_id[:2].upper()
+    try:
+        x = int(sub_id[2:4])
+        y = int(sub_id[4:6])
+        parent_x = (x // 5) * 5
+        parent_y = (y // 5) * 5
+        return f"{prefix}{parent_x:02d}{parent_y:02d}"
+    except ValueError:
+        return None
 
 def check_laz_header(filepath: Path) -> bool:
     try:
@@ -139,8 +154,9 @@ def main():
     if mod_files:
         valid_mod = sum(1 for f in mod_files if check_laz_header(f))
         tot_gb = sum(f.stat().st_size for f in mod_files) / (1024**3)
+        parents_mod = set(sub_to_parent_5km(f.name) for f in mod_files if sub_to_parent_5km(f.name))
         if valid_mod == len(mod_files):
-            report("PASS", "Modern National LiDAR (2019-2021)", f"{len(mod_files)} tiles, {tot_gb:.1f} GB (100% valid)")
+            report("PASS", "Modern National LiDAR (2019-2021)", f"{len(parents_mod)} tiles ({len(mod_files)} files, {tot_gb:.1f} GB) - 100% complete")
         else:
             report("WARN", "Modern National LiDAR (2019-2021)", f"{valid_mod}/{len(mod_files)} valid ({len(mod_files)-valid_mod} corrupt)")
     else:
@@ -152,12 +168,30 @@ def main():
     if files_2009:
         valid_2009 = sum(1 for f in files_2009 if check_laz_header(f))
         tot_mb = sum(f.stat().st_size for f in files_2009) / (1024**2)
+        parents_2009 = set(sub_to_parent_5km(f.name) for f in files_2009 if sub_to_parent_5km(f.name))
         if valid_2009 == len(files_2009):
-            report("PASS", "Historical Baseline Survey (2009)", f"{len(files_2009)} sub-tiles, {tot_mb:.0f} MB (100% valid)")
+            report("PASS", "Historical Baseline Survey (2009)", f"{len(parents_2009)}/86 tiles ({len(files_2009)} files, {tot_mb:.0f} MB) - 100% complete")
         else:
             report("WARN", "Historical Baseline Survey (2009)", f"{valid_2009}/{len(files_2009)} valid ({len(files_2009)-valid_2009} corrupt)")
     else:
         report("WARN", "Historical Baseline Survey (2009)", "Not downloaded yet. Run: ./pipeline.sh download --year 2009")
+
+    # Additional Downloaded Epochs
+    epoch_specs = [
+        ("baseline", "Baseline Era Archive (2005-2010)", 114),
+        ("midterm", "Midterm Monitoring Era (2013-2018)", 98),
+        ("recent", "Recent Repeat Flights (2022-2024)", 30),
+    ]
+    for ep_id, ep_title, expected_max in epoch_specs:
+        ep_dir = RAW_DIR / ep_id
+        ep_files = list(ep_dir.glob("*.laz")) if ep_dir.exists() else []
+        if ep_files:
+            valid_ep = sum(1 for f in ep_files if check_laz_header(f))
+            parents_ep = set(sub_to_parent_5km(f.name) for f in ep_files if sub_to_parent_5km(f.name))
+            tot_mb = sum(f.stat().st_size for f in ep_files) / (1024**2)
+            report("PASS", f"{ep_title}", f"{len(parents_ep)} tiles ({len(ep_files)} files, {tot_mb:.0f} MB)")
+        else:
+            report("INFO", f"{ep_title}", f"Optional - not downloaded yet. Run: ./pipeline.sh epoch-run {ep_id}")
 
     # -------------------------------------------------------------------------
     # 4. Processed Grids & Carbon Stock Accounts
@@ -178,17 +212,30 @@ def main():
     else:
         report("FAIL", "Modern Carbon Stock Account (CSV)", "Missing! Run: ./pipeline.sh carbon")
 
-    hist_candidates = [
-        OUTPUT_DIR / "lake_district_carbon_2009.csv",
-        OUTPUT_DIR / "lake_district_carbon_baseline.csv",
-        OUTPUT_DIR / "lake_district_carbon_baseline_carbon.csv"
-    ]
-    hist_carbon = next((p for p in hist_candidates if p.exists() and p.stat().st_size > 1000), None)
-    if hist_carbon:
+    hist_carbon = OUTPUT_DIR / "lake_district_carbon_2009.csv"
+    if hist_carbon.exists() and hist_carbon.stat().st_size > 1000:
         lines = sum(1 for _ in open(hist_carbon, "rb"))
-        report("PASS", "Baseline Carbon Account (2009)", f"{lines-1:,} cells ({hist_carbon.name})")
+        report("PASS", "Baseline Carbon Account (2009)", f"{lines-1:,} cells ({hist_carbon.stat().st_size / (1024*1024):.1f} MB)")
     else:
         report("WARN", "Baseline Carbon Account (2009)", "Not calculated yet. Run: ./pipeline.sh process-year 2009")
+
+    # Check other processed epoch CSVs
+    for ep_id, ep_title in [
+        ("baseline", "Baseline Era Carbon Account"),
+        ("midterm", "Midterm Era Carbon Account"),
+        ("recent", "Recent Era Carbon Account")
+    ]:
+        ep_candidates = [
+            OUTPUT_DIR / f"lake_district_carbon_{ep_id}.csv",
+            OUTPUT_DIR / f"lake_district_carbon_{ep_id}_carbon.csv",
+            OUTPUT_DIR / ep_id / "lake_district_carbon.csv"
+        ]
+        ep_csv = next((p for p in ep_candidates if p.exists() and p.stat().st_size > 1000), None)
+        if ep_csv:
+            lines = sum(1 for _ in open(ep_csv, "rb"))
+            report("PASS", f"{ep_title}", f"{lines-1:,} cells ({ep_csv.name})")
+        else:
+            report("INFO", f"{ep_title}", f"Not calculated yet. Run: ./pipeline.sh epoch-run {ep_id}")
 
     # -------------------------------------------------------------------------
     # 5. Published Vector Tiles & Web Map

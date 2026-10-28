@@ -37,6 +37,7 @@ usage() {
   process-year Download, grid, and calculate carbon for a single year (e.g. ./pipeline.sh process-year 2009)
   epoch-run    Download, grid, and calculate an entire survey epoch (baseline, midterm, recent)
   epoch-build  Assemble all available survey epochs into the composite PMTiles pyramid
+  check        Comprehensive health audit of tools, datasets, outputs & web assets (alias: doctor)
   verify       Verify that all point cloud files are present and uncorrupted (e.g. ./pipeline.sh verify 2009)
 "
     echo ""
@@ -184,6 +185,10 @@ case "$cmd" in
         echo "======================================================="
         echo " Finished Epoch $EPOCH! Vector tiles updated in docs/"
         echo "======================================================="
+        ;;
+
+    check|doctor)
+        python3 "$PROJECT_DIR/check_everything.py"
         ;;
 
     verify)

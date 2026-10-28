@@ -3,9 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lake District Decadal Carbon Map (2009 Baseline vs 2020 National LiDAR)</title>
+  <title>Lake District Carbon Map</title>
   
-  <!-- MapLibre GL JS & PMTiles v3 -->
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" />
   <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
   <script src="https://unpkg.com/pmtiles@3.0.7/dist/pmtiles.js"></script>
@@ -23,50 +22,28 @@
     }
     #map { height: 100vh; width: 100vw; }
 
-    /* Main Left Control Panel */
     .header-panel {
       position: absolute;
       top: 16px;
       left: 16px;
       z-index: 1000;
-      background: rgba(15, 23, 42, 0.96);
+      background: rgba(15, 23, 42, 0.95);
       backdrop-filter: blur(16px);
-      padding: 18px;
-      border-radius: 14px;
+      padding: 16px;
+      border-radius: 12px;
       border: 1px solid rgba(71, 85, 105, 0.75);
       color: #f8fafc;
-      box-shadow: 0 14px 36px -4px rgba(0, 0, 0, 0.75);
-      width: 420px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.65);
+      width: 360px;
       max-width: calc(100vw - 32px);
-      max-height: calc(100vh - 32px);
-      overflow-y: auto;
     }
     .header-panel h1 {
-      margin: 0 0 4px 0;
+      margin: 0;
       font-size: 16px;
       font-weight: 700;
-      display: flex;
-      align-items: center;
-      gap: 8px;
       letter-spacing: -0.2px;
     }
-    .pulse-dot {
-      width: 9px;
-      height: 9px;
-      border-radius: 50%;
-      background: #10b981;
-      display: inline-block;
-      box-shadow: 0 0 8px #10b981;
-      flex-shrink: 0;
-    }
-    .header-subtitle {
-      margin: 0;
-      font-size: 12px;
-      color: #94a3b8;
-      line-height: 1.4;
-    }
 
-    /* Mode Selector Tabs - 3 Equal Columns with 2-Line Labels so text never overflows */
     .mode-tabs {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -79,58 +56,23 @@
       color: #cbd5e1;
       border-radius: 8px;
       padding: 8px 6px;
+      font-size: 12px;
+      font-weight: 600;
       cursor: pointer;
-      transition: all 0.18s ease;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 2px;
+      transition: all 0.15s ease;
       text-align: center;
-      line-height: 1.2;
-    }
-    .tab-btn .tab-main {
-      font-size: 11.5px;
-      font-weight: 700;
-    }
-    .tab-btn .tab-sub {
-      font-size: 9.5px;
-      opacity: 0.8;
-      font-weight: 500;
     }
     .tab-btn:hover {
       background: #334155;
       color: #f8fafc;
-      border-color: #64748b;
     }
     .tab-btn.active {
       background: #10b981;
       color: #0f172a;
       border-color: #10b981;
-      box-shadow: 0 0 14px rgba(16, 185, 129, 0.35);
-    }
-    .tab-btn.active .tab-sub {
-      color: #064e3b;
-      opacity: 0.95;
       font-weight: 700;
     }
 
-    /* Dynamic Mode Explanation Banner */
-    .mode-explainer {
-      margin-top: 10px;
-      padding: 9px 11px;
-      background: rgba(30, 41, 59, 0.85);
-      border-left: 3px solid #10b981;
-      border-radius: 6px;
-      font-size: 11.5px;
-      color: #cbd5e1;
-      line-height: 1.45;
-    }
-    .mode-explainer strong {
-      color: #f8fafc;
-    }
-
-    /* Metrics Grid */
     .stats-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -157,7 +99,6 @@
       font-weight: 700;
       color: #10b981;
       line-height: 1.25;
-      word-break: break-word;
     }
     .stat-unit {
       font-size: 11px;
@@ -165,43 +106,6 @@
       color: #cbd5e1;
     }
 
-    /* Quick Location Fly-to Pills */
-    .location-pills {
-      margin-top: 12px;
-      padding-top: 10px;
-      border-top: 1px solid rgba(51, 65, 85, 0.6);
-      display: flex;
-      flex-wrap: wrap;
-      gap: 5px;
-      align-items: center;
-    }
-    .pill-label {
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.4px;
-      color: #94a3b8;
-      font-weight: 600;
-      width: 100%;
-      margin-bottom: 2px;
-    }
-    .loc-btn {
-      background: rgba(30, 41, 59, 0.9);
-      border: 1px solid rgba(71, 85, 105, 0.75);
-      color: #cbd5e1;
-      border-radius: 6px;
-      padding: 4px 8px;
-      font-size: 10.5px;
-      cursor: pointer;
-      font-weight: 600;
-      transition: all 0.15s;
-    }
-    .loc-btn:hover {
-      background: #334155;
-      color: #38bdf8;
-      border-color: #38bdf8;
-    }
-
-    /* Layer Controls */
     .controls-container {
       margin-top: 12px;
       padding-top: 10px;
@@ -214,7 +118,7 @@
       display: flex;
       align-items: center;
       gap: 9px;
-      font-size: 11.5px;
+      font-size: 12px;
       color: #cbd5e1;
       user-select: none;
     }
@@ -250,7 +154,6 @@
     input:checked + .slider.slider-blue { background-color: #38bdf8; }
     input:checked + .slider:before { transform: translateX(16px); }
 
-    /* Legend Panel */
     .legend-panel {
       position: absolute;
       bottom: 24px;
@@ -258,12 +161,12 @@
       z-index: 1000;
       background: rgba(15, 23, 42, 0.95);
       backdrop-filter: blur(14px);
-      padding: 14px 16px;
+      padding: 13px 16px;
       border-radius: 12px;
       border: 1px solid rgba(71, 85, 105, 0.8);
       color: #f8fafc;
-      box-shadow: 0 10px 28px -4px rgba(0, 0, 0, 0.65);
-      width: 310px;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.65);
+      width: 280px;
       max-width: calc(100vw - 48px);
     }
     .legend-title {
@@ -275,23 +178,22 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 8px;
     }
     .legend-bar-delta {
-      height: 12px;
-      border-radius: 6px;
+      height: 10px;
+      border-radius: 5px;
       background: linear-gradient(to right, #dc2626 0%, #ef4444 22%, #fca5a5 40%, rgba(148, 163, 184, 0.75) 48%, rgba(148, 163, 184, 0.75) 52%, #86efac 62%, #10b981 80%, #047857 100%);
       margin-bottom: 6px;
     }
     .legend-bar-2020 {
-      height: 12px;
-      border-radius: 6px;
+      height: 10px;
+      border-radius: 5px;
       background: linear-gradient(to right, #a7f3d0, #34d399, #10b981, #059669, #047857, #f59e0b);
       margin-bottom: 6px;
     }
     .legend-bar-2009 {
-      height: 12px;
-      border-radius: 6px;
+      height: 10px;
+      border-radius: 5px;
       background: linear-gradient(to right, #fde68a, #fbbf24, #84cc16, #10b981, #059669, #065f46);
       margin-bottom: 6px;
     }
@@ -303,7 +205,6 @@
       font-size: 10px;
     }
 
-    /* CRITICAL FIX: Make popup non-interactive so it NEVER blocks mouse hover over adjacent cells! */
     .maplibregl-popup,
     .maplibregl-popup-content,
     .maplibregl-popup-tip {
@@ -314,10 +215,10 @@
       color: #f8fafc !important;
       border: 1px solid #475569 !important;
       border-radius: 10px !important;
-      padding: 12px 14px !important;
-      box-shadow: 0 16px 32px rgba(0, 0, 0, 0.7) !important;
-      width: 270px !important;
-      max-width: 270px !important;
+      padding: 11px 13px !important;
+      box-shadow: 0 14px 28px rgba(0, 0, 0, 0.7) !important;
+      width: 245px !important;
+      max-width: 245px !important;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif !important;
     }
     .maplibregl-popup-anchor-top .maplibregl-popup-tip { border-bottom-color: rgba(15, 23, 42, 0.97) !important; }
@@ -332,55 +233,49 @@
       align-items: center;
       gap: 6px;
       border-bottom: 1px solid #334155;
-      padding-bottom: 6px;
-      margin-bottom: 8px;
+      padding-bottom: 5px;
+      margin-bottom: 7px;
     }
     .popup-title {
       color: #38bdf8;
-      font-size: 13px;
+      font-size: 12.5px;
       font-weight: 700;
-      line-height: 1.2;
     }
     .badge-felled {
       background: rgba(220, 38, 38, 0.25);
       color: #fca5a5;
       border: 1px solid #ef4444;
-      padding: 2px 6px;
+      padding: 1px 5px;
       border-radius: 4px;
       font-size: 9.5px;
-      font-weight: 800;
-      letter-spacing: 0.3px;
-      white-space: nowrap;
+      font-weight: 700;
     }
     .badge-loss {
       background: rgba(239, 68, 68, 0.2);
       color: #fca5a5;
       border: 1px solid #f87171;
-      padding: 2px 6px;
+      padding: 1px 5px;
       border-radius: 4px;
       font-size: 9.5px;
       font-weight: 700;
-      white-space: nowrap;
     }
     .badge-gain {
       background: rgba(16, 185, 129, 0.2);
       color: #6ee7b7;
       border: 1px solid #10b981;
-      padding: 2px 6px;
+      padding: 1px 5px;
       border-radius: 4px;
       font-size: 9.5px;
       font-weight: 700;
-      white-space: nowrap;
     }
     .badge-stable {
       background: rgba(148, 163, 184, 0.2);
       color: #cbd5e1;
       border: 1px solid #475569;
-      padding: 2px 6px;
+      padding: 1px 5px;
       border-radius: 4px;
       font-size: 9.5px;
       font-weight: 600;
-      white-space: nowrap;
     }
   </style>
 </head>
@@ -388,170 +283,121 @@
   <div id="map"></div>
 
   <div class="header-panel">
-    <h1><span class="pulse-dot"></span> Lake District Woodland Carbon</h1>
-    <p class="header-subtitle">20m resolution airborne LiDAR audit comparing the 2009 Baseline survey against the 2020 National LiDAR survey.</p>
+    <h1>Lake District Carbon Map</h1>
 
-    <!-- 3 Distinct Mode Tabs -->
     <div class="mode-tabs">
-      <button id="btn-delta" class="tab-btn active" onclick="setMode('delta')">
-        <span class="tab-main">📊 2009 ➔ 2020</span>
-        <span class="tab-sub">Decadal Change</span>
-      </button>
-      <button id="btn-t2" class="tab-btn" onclick="setMode('t2')">
-        <span class="tab-main">🌲 2020 Survey</span>
-        <span class="tab-sub">Full Park (26.4k ha)</span>
-      </button>
-      <button id="btn-t1" class="tab-btn" onclick="setMode('t1')">
-        <span class="tab-main">🌲 2009 Survey</span>
-        <span class="tab-sub">Baseline (9.1k ha)</span>
-      </button>
+      <button id="btn-delta" class="tab-btn active" onclick="setMode('delta')">2009 vs 2020</button>
+      <button id="btn-t2" class="tab-btn" onclick="setMode('t2')">2020</button>
+      <button id="btn-t1" class="tab-btn" onclick="setMode('t1')">2009</button>
     </div>
 
-    <!-- Plain-English Mode Explanation Banner -->
-    <div id="mode-explainer" class="mode-explainer">
-      Showing the <strong>10,836 ha overlap</strong> surveyed in both 2009 &amp; 2020. <span style="color:#34d399; font-weight:600;">Green</span> = canopy growth; <span style="color:#f87171; font-weight:600;">Red</span> = clear-felled or thinned stands.
-    </div>
-
-    <!-- Key Metrics Grid -->
     <div id="metrics-panel" class="stats-grid">
       <div class="stat-item">
         <div id="label-stat-1" class="stat-label">Net Carbon Change</div>
-        <div id="val-stat-1" class="stat-val" style="color: #34d399;">+144,876 <span class="stat-unit">tC (+64.1%)</span></div>
+        <div id="val-stat-1" class="stat-val" style="color: #34d399;">+144,876 <span class="stat-unit">tC</span></div>
       </div>
       <div class="stat-item">
-        <div id="label-stat-2" class="stat-label">Net CO₂ Sequestered</div>
+        <div id="label-stat-2" class="stat-label">CO₂ Equivalent</div>
         <div id="val-stat-2" class="stat-val" style="color: #2dd4bf;">+531,212 <span class="stat-unit">tCO₂e</span></div>
       </div>
       <div class="stat-item">
-        <div id="label-stat-3" class="stat-label">Growth vs Total Loss</div>
+        <div id="label-stat-3" class="stat-label">Growth / Loss</div>
         <div id="val-stat-3" class="stat-val" style="font-size: 13px;">
-          <span style="color:#34d399;">▲ 8,888 ha</span> &nbsp;<span style="color:#f87171;">▼ 1,673 ha</span>
+          <span style="color:#34d399;">+8,888 ha</span> / <span style="color:#f87171;">-1,673 ha</span>
         </div>
       </div>
       <div class="stat-item">
-        <div id="label-stat-4" class="stat-label">Clear-Felled (to 0m)</div>
-        <div id="val-stat-4" class="stat-val" style="color: #f87171;">708.6 ha <span class="stat-unit">(17,714 cells)</span></div>
+        <div id="label-stat-4" class="stat-label">Clear-Felled</div>
+        <div id="val-stat-4" class="stat-val" style="color: #f87171;">708.6 <span class="stat-unit">ha</span></div>
       </div>
     </div>
 
-    <!-- Quick Location Shortcuts -->
-    <div class="location-pills">
-      <div class="pill-label">Jump to Forests &amp; Clear-Fell Coupes</div>
-      <button class="loc-btn" onclick="flyToLoc(-3.225, 54.612, 13.5)">🌲 Whinlatter Fells</button>
-      <button class="loc-btn" onclick="flyToLoc(-3.025, 54.335, 13.2)">🌲 Grizedale Forest</button>
-      <button class="loc-btn" onclick="flyToLoc(-3.365, 54.518, 13.2)">🌲 Ennerdale Valley</button>
-      <button class="loc-btn" onclick="flyToLoc(-3.168, 54.642, 13.5)">🌲 Dodd Wood</button>
-      <button class="loc-btn" onclick="flyToLoc(-3.080, 54.470, 10)">🗺️ Full Park</button>
-    </div>
-
-    <!-- Layer Toggles -->
     <div class="controls-container">
       <div class="control-row" id="row-unflown-toggle">
         <label class="switch">
           <input type="checkbox" id="toggle-only20" onchange="updateMapFiltersAndPaint()">
           <span class="slider slider-blue"></span>
         </label>
-        <span>Show <strong>2020-only areas</strong> (unflown in 2009) in muted grey</span>
+        <span>Show 2020-only areas</span>
       </div>
       <div class="control-row">
         <label class="switch">
           <input type="checkbox" id="toggle-squares" checked onchange="toggleLayer('carbon', this.checked)">
           <span class="slider"></span>
         </label>
-        <span>Show <strong>20m Woodland Carbon Grid</strong></span>
+        <span>20m Carbon Grid</span>
       </div>
       <div class="control-row">
         <label class="switch">
           <input type="checkbox" id="toggle-boundary" checked onchange="toggleLayer('boundary', this.checked)">
           <span class="slider slider-amber"></span>
         </label>
-        <span>Show <strong>National Park Boundary</strong> (Gold Dashed)</span>
+        <span>National Park Boundary</span>
       </div>
     </div>
   </div>
 
-  <!-- Dynamic Legend Panel -->
   <div class="legend-panel">
     <div id="legend-header" class="legend-title">
-      <span id="legend-title-text">Decadal Carbon Change (09➔20)</span>
+      <span id="legend-title-text">Carbon Change</span>
       <span id="legend-unit-text" style="color:#34d399;">Δ tC / ha</span>
     </div>
     <div id="legend-bar" class="legend-bar-delta"></div>
     <div id="legend-labels" class="legend-labels">
-      <span style="color:#f87171;">-35 (Felled/Lost)</span>
-      <span style="color:#94a3b8;">0 (Stable)</span>
-      <span style="color:#34d399;">+35+ (Growth)</span>
-    </div>
-    <div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(51, 65, 85, 0.6); display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: #cbd5e1;">
-      <div style="display:flex; align-items:center; gap: 6px;">
-        <span style="display:inline-block; width: 16px; height: 0px; border-top: 2px dashed #f59e0b;"></span>
-        <span>Park Boundary</span>
-      </div>
-      <span style="color:#94a3b8; font-size:10px;">Hover any square for audit</span>
+      <span style="color:#f87171;">-35</span>
+      <span style="color:#94a3b8;">0</span>
+      <span style="color:#34d399;">+35+</span>
     </div>
   </div>
 
   <script>
-    let currentMode = 'delta'; // 'delta', 't2', 't1'
+    let currentMode = 'delta';
 
-    // Register PMTiles v3 Protocol
     const protocol = new pmtiles.Protocol();
     maplibregl.addProtocol("pmtiles", protocol.tile);
 
-    // Honest Audit Metrics from build_composite.py
     const MODE_CONFIG = {
       delta: {
-        explainer: 'Showing the <strong>10,836 ha overlap</strong> surveyed in both 2009 &amp; 2020. <span style="color:#34d399; font-weight:600;">Green</span> = canopy growth; <span style="color:#f87171; font-weight:600;">Red</span> = clear-felled or thinned stands.',
-        borderColor: '#10b981',
-        stat1_label: 'Net Carbon Change (Overlap)',
-        stat1_val: '+144,876 <span class="stat-unit">tC (+64.1%)</span>',
+        stat1_label: 'Net Carbon Change',
+        stat1_val: '+144,876 <span class="stat-unit">tC</span>',
         stat1_color: '#34d399',
-        stat2_label: 'Net CO₂ Sequestered',
+        stat2_label: 'CO₂ Equivalent',
         stat2_val: '+531,212 <span class="stat-unit">tCO₂e</span>',
-        stat3_label: 'Growth vs Loss Area',
-        stat3_val: '<span style="color:#34d399;">▲ 8,888 ha</span> &nbsp;<span style="color:#f87171;">▼ 1,673 ha</span>',
-        stat4_label: 'Clear-Felled (to 0m)',
-        stat4_val: '<span style="color:#f87171;">708.6 ha <span class="stat-unit">(17,714 cells)</span></span>'
+        stat3_label: 'Growth / Loss',
+        stat3_val: '<span style="color:#34d399;">+8,888 ha</span> / <span style="color:#f87171;">-1,673 ha</span>',
+        stat4_label: 'Clear-Felled',
+        stat4_val: '<span style="color:#f87171;">708.6 <span class="stat-unit">ha</span></span>'
       },
       t2: {
-        explainer: 'Showing the complete wall-to-wall <strong>2020 National LiDAR survey (26,391 ha)</strong> across all 174 park tiles. Stands clear-felled before 2020 have 0 stock and reveal the bare satellite ground.',
-        borderColor: '#38bdf8',
-        stat1_label: '2020 Total Stored Carbon',
+        stat1_label: '2020 Stored Carbon',
         stat1_val: '947,837 <span class="stat-unit">tC</span>',
         stat1_color: '#34d399',
-        stat2_label: '2020 CO₂ Equivalent',
+        stat2_label: 'CO₂ Equivalent',
         stat2_val: '3,475,720 <span class="stat-unit">tCO₂e</span>',
-        stat3_label: '2020 Woodland Footprint',
-        stat3_val: '<span style="color:#38bdf8;">26,391.4 ha <span class="stat-unit">(659.8k cells)</span></span>',
-        stat4_label: '2020 Mean Carbon Density',
-        stat4_val: '<span style="color:#10b981;">35.9 <span class="stat-unit">tC / ha</span></span>'
+        stat3_label: 'Woodland Area',
+        stat3_val: '<span style="color:#38bdf8;">26,391 <span class="stat-unit">ha</span></span>',
+        stat4_label: 'Mean Density',
+        stat4_val: '<span style="color:#10b981;">35.9 <span class="stat-unit">tC/ha</span></span>'
       },
       t1: {
-        explainer: 'Showing the historical <strong>2009 Baseline LiDAR survey (9,074 ha)</strong> across the 86 valley &amp; catchment tiles flown in 2009 — including <strong>709 ha</strong> of mature forest later clear-felled before 2020.',
-        borderColor: '#fbbf24',
-        stat1_label: '2009 Baseline Carbon',
+        stat1_label: '2009 Stored Carbon',
         stat1_val: '226,008 <span class="stat-unit">tC</span>',
         stat1_color: '#fbbf24',
-        stat2_label: '2009 CO₂ Equivalent',
+        stat2_label: 'CO₂ Equivalent',
         stat2_val: '828,697 <span class="stat-unit">tCO₂e</span>',
-        stat3_label: '2009 Surveyed Woodland',
-        stat3_val: '<span style="color:#fbbf24;">9,073.6 ha <span class="stat-unit">(226.8k cells)</span></span>',
-        stat4_label: '2009 Mean Carbon Density',
-        stat4_val: '<span style="color:#fbbf24;">24.9 <span class="stat-unit">tC / ha</span></span>'
+        stat3_label: 'Surveyed Area',
+        stat3_val: '<span style="color:#fbbf24;">9,074 <span class="stat-unit">ha</span></span>',
+        stat4_label: 'Mean Density',
+        stat4_val: '<span style="color:#fbbf24;">24.9 <span class="stat-unit">tC/ha</span></span>'
       }
     };
 
     function getLayerFilter(mode, showOnly20InDelta) {
       if (mode === 'delta') {
-        if (showOnly20InDelta) {
-          return null; // Show all cells (with only20 in muted grey)
-        }
-        return ['!=', ['get', 'st'], 'only20'];
+        return showOnly20InDelta ? null : ['!=', ['get', 'st'], 'only20'];
       } else if (mode === 't2') {
-        // Only show cells that actually have standing woodland in 2020 (d20 > 0)
         return ['>', ['coalesce', ['get', 'd20'], 0], 0];
       } else if (mode === 't1') {
-        // Only show cells that actually had standing woodland in 2009 (d09 > 0)
         return ['>', ['coalesce', ['get', 'd09'], 0], 0];
       }
       return null;
@@ -562,18 +408,18 @@
         return [
           'case',
           ['==', ['get', 'st'], 'only20'],
-          'rgba(100, 116, 139, 0.35)', // Muted slate if user toggles 2020-only background cells on
+          'rgba(100, 116, 139, 0.35)',
           [
             'interpolate',
             ['linear'],
             ['coalesce', ['get', 'dd'], 0],
-            -35, '#dc2626', // Deep crimson clear-fell
-            -15, '#ef4444', // Red heavy loss / thinning
-            -3,  '#fca5a5', // Light red partial loss
-            0,   'rgba(148, 163, 184, 0.5)', // Neutral slate stable
-            3,   '#86efac', // Light green young growth
-            18,  '#10b981', // Emerald vigorous growth
-            35,  '#047857'  // Deep forest green high sequestration
+            -35, '#dc2626',
+            -15, '#ef4444',
+            -3,  '#fca5a5',
+            0,   'rgba(148, 163, 184, 0.5)',
+            3,   '#86efac',
+            18,  '#10b981',
+            35,  '#047857'
           ]
         ];
       } else if (mode === 't2') {
@@ -692,15 +538,9 @@
       document.getElementById('btn-t2').classList.toggle('active', mode === 't2');
       document.getElementById('btn-t1').classList.toggle('active', mode === 't1');
 
-      // Show/hide the 2020-only grey toggle (only relevant in Delta comparison view)
       document.getElementById('row-unflown-toggle').style.display = (mode === 'delta') ? 'flex' : 'none';
 
       const cfg = MODE_CONFIG[mode];
-      const expEl = document.getElementById('mode-explainer');
-      expEl.innerHTML = cfg.explainer;
-      expEl.style.borderLeftColor = cfg.borderColor;
-
-      // Update Legend
       const bar = document.getElementById('legend-bar');
       const lTitle = document.getElementById('legend-title-text');
       const lUnit = document.getElementById('legend-unit-text');
@@ -708,25 +548,24 @@
 
       if (mode === 'delta') {
         bar.className = 'legend-bar-delta';
-        lTitle.innerText = 'Decadal Carbon Change (09➔20)';
+        lTitle.innerText = 'Carbon Change';
         lUnit.innerText = 'Δ tC / ha';
         lUnit.style.color = '#34d399';
-        lLabels.innerHTML = '<span style="color:#f87171;">-35 (Felled/Lost)</span><span style="color:#94a3b8;">0 (Stable)</span><span style="color:#34d399;">+35+ (Growth)</span>';
+        lLabels.innerHTML = '<span style="color:#f87171;">-35</span><span style="color:#94a3b8;">0</span><span style="color:#34d399;">+35+</span>';
       } else if (mode === 't2') {
         bar.className = 'legend-bar-2020';
-        lTitle.innerText = '2020 Woodland Carbon Density';
+        lTitle.innerText = '2020 Carbon Density';
         lUnit.innerText = 'tC / ha';
         lUnit.style.color = '#34d399';
         lLabels.innerHTML = '<span>1</span><span>25</span><span>50</span><span>75</span><span>100</span><span>130+</span>';
       } else if (mode === 't1') {
         bar.className = 'legend-bar-2009';
-        lTitle.innerText = '2009 Baseline Carbon Density';
+        lTitle.innerText = '2009 Carbon Density';
         lUnit.innerText = 'tC / ha';
         lUnit.style.color = '#fbbf24';
         lLabels.innerHTML = '<span>1</span><span>20</span><span>40</span><span>65</span><span>90</span><span>120+</span>';
       }
 
-      // Update KPI cards
       document.getElementById('label-stat-1').innerText = cfg.stat1_label;
       document.getElementById('val-stat-1').innerHTML = cfg.stat1_val;
       document.getElementById('val-stat-1').style.color = cfg.stat1_color;
@@ -741,16 +580,6 @@
       document.getElementById('val-stat-4').innerHTML = cfg.stat4_val;
 
       updateMapFiltersAndPaint();
-    }
-
-    function flyToLoc(lng, lat, zoom) {
-      map.flyTo({
-        center: [lng, lat],
-        zoom: zoom,
-        speed: 1.25,
-        curve: 1.35,
-        essential: true
-      });
     }
 
     function toggleLayer(type, visible) {
@@ -769,7 +598,6 @@
       offset: 14
     });
 
-    // Robust 5x5 pixel bounding-box query so hovering NEVER misses a 20m cell at any zoom level
     map.on('mousemove', (e) => {
       if (!map.getLayer('carbon-squares-fill')) return;
       const vis = map.getLayoutProperty('carbon-squares-fill', 'visibility');
@@ -802,77 +630,57 @@
       const dd  = p.dd  !== undefined ? parseFloat(p.dd)  : (d20 - d09);
       const dh  = p.dh  !== undefined ? parseFloat(p.dh)  : (h20 - h09);
 
-      const c09 = (d09 * 0.04).toFixed(2);
-      const c20 = (d20 * 0.04).toFixed(2);
-
       let badgeHtml = '';
       let deltaColor = '#34d399';
 
       if (st === 'only20') {
-        badgeHtml = `<span class="badge-stable">2020 SURVEY ONLY</span>`;
+        badgeHtml = `<span class="badge-stable">2020 ONLY</span>`;
         deltaColor = '#94a3b8';
       } else if (st === 'felled' || (d20 <= 0.1 && d09 >= 2.0)) {
-        badgeHtml = `<span class="badge-felled">▼ CLEAR-FELLED (-100%)</span>`;
+        badgeHtml = `<span class="badge-felled">FELLED</span>`;
         deltaColor = '#f87171';
       } else if (dd < -1.5) {
-        const pct = d09 > 0 ? Math.round(((d20 - d09) / d09) * 100) : -100;
-        badgeHtml = `<span class="badge-loss">▼ CANOPY LOSS (${pct}%)</span>`;
+        badgeHtml = `<span class="badge-loss">LOSS</span>`;
         deltaColor = '#f87171';
       } else if (dd > 1.5) {
-        const pctLabel = d09 > 0 ? `+${Math.round(((d20 - d09) / d09) * 100)}%` : 'NEW GROWTH';
-        badgeHtml = `<span class="badge-gain">▲ GROWTH (${pctLabel})</span>`;
+        badgeHtml = `<span class="badge-gain">GROWTH</span>`;
         deltaColor = '#34d399';
       } else {
-        badgeHtml = `<span class="badge-stable">● STABLE</span>`;
+        badgeHtml = `<span class="badge-stable">STABLE</span>`;
         deltaColor = '#94a3b8';
       }
 
       let bodyHtml = '';
       if (st === 'only20') {
         bodyHtml = `
-          <div style="font-size: 12px; line-height: 1.55; color: #cbd5e1;">
-            <div><strong>2020 Carbon Density:</strong> <span style="color:#34d399; font-weight:700;">${d20.toFixed(1)} tC/ha</span> (${c20} tC)</div>
-            <div><strong>2020 Canopy Height (h90):</strong> <span style="color:#38bdf8; font-weight:700;">${h20.toFixed(1)} m</span></div>
-            <div style="margin-top: 6px; padding-top: 6px; border-top: 1px dashed #334155; font-size: 11px; color: #94a3b8;">
-              Outside the 2009 historical flight swath; surveyed in the 2020 wall-to-wall National LiDAR programme.
+          <div style="font-size: 12px; line-height: 1.6; color: #cbd5e1;">
+            <div style="display:flex; justify-content:space-between;">
+              <span style="color:#94a3b8;">2020 Carbon:</span>
+              <strong style="color:#34d399;">${d20.toFixed(1)} tC/ha</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between;">
+              <span style="color:#94a3b8;">2020 Height:</span>
+              <strong style="color:#f8fafc;">${h20.toFixed(1)} m</strong>
             </div>
           </div>
         `;
       } else {
-        const deltaTonnes = (dd * 0.04).toFixed(2);
         const sign = dd > 0 ? '+' : '';
         const hSign = dh > 0 ? '+' : '';
-        const maxH = Math.max(h09, h20, 15);
-        const bar09 = Math.round((h09 / maxH) * 28);
-        const bar20 = Math.round((h20 / maxH) * 28);
 
         bodyHtml = `
-          <div style="font-size: 12px; line-height: 1.55; color: #cbd5e1;">
-            <div><strong>Carbon Change:</strong> <span style="color:${deltaColor}; font-weight:700;">${sign}${deltaTonnes} tC</span> (${sign}${dd.toFixed(1)} tC/ha)</div>
-            <div><strong>Height Change:</strong> <span style="color:#38bdf8; font-weight:700;">${hSign}${dh.toFixed(1)} m</span> (${h09.toFixed(1)}m ➔ ${h20.toFixed(1)}m)</div>
-            
-            <div style="margin-top: 7px; padding-top: 6px; border-top: 1px dashed #334155; font-size: 11px;">
-              <div style="display:flex; justify-content:space-between;">
-                <span style="color:#94a3b8;">2009 Baseline:</span>
-                <strong style="color:#fbbf24;">${d09.toFixed(1)} tC/ha (${c09} tC)</strong>
-              </div>
-              <div style="display:flex; justify-content:space-between; margin-top:2px;">
-                <span style="color:#94a3b8;">2020 Modern:</span>
-                <strong style="color:${d20 === 0 ? '#f87171' : '#34d399'};">${d20 === 0 ? '0.0 tC/ha (Felled)' : `${d20.toFixed(1)} tC/ha (${c20} tC)`}</strong>
-              </div>
+          <div style="font-size: 12px; line-height: 1.6; color: #cbd5e1;">
+            <div style="display:flex; justify-content:space-between;">
+              <span style="color:#94a3b8;">Change:</span>
+              <strong style="color:${deltaColor};">${sign}${dd.toFixed(1)} tC/ha (${hSign}${dh.toFixed(1)} m)</strong>
             </div>
-
-            <div style="margin-top: 7px; padding-top: 6px; border-top: 1px dashed #334155; display:grid; grid-template-columns: 1fr 1fr; gap: 6px; align-items:end; background:rgba(30,41,59,0.55); padding: 6px 8px; border-radius:6px;">
-              <div style="display:flex; flex-direction:column; align-items:center;">
-                <span style="font-size:9.5px; color:#fbbf24; font-weight:700; margin-bottom:2px;">${h09.toFixed(1)}m</span>
-                <div style="width:28px; height:${Math.max(bar09, 2)}px; background:#fbbf24; border-radius:2px;"></div>
-                <span style="font-size:9px; color:#94a3b8; margin-top:2px;">2009</span>
-              </div>
-              <div style="display:flex; flex-direction:column; align-items:center;">
-                <span style="font-size:9.5px; color:${d20 === 0 ? '#f87171' : '#34d399'}; font-weight:700; margin-bottom:2px;">${h20.toFixed(1)}m</span>
-                <div style="width:28px; height:${Math.max(bar20, 2)}px; background:${d20 === 0 ? '#ef4444' : '#10b981'}; border-radius:2px;"></div>
-                <span style="font-size:9px; color:#94a3b8; margin-top:2px;">2020</span>
-              </div>
+            <div style="display:flex; justify-content:space-between;">
+              <span style="color:#94a3b8;">2009:</span>
+              <strong style="color:#fbbf24;">${d09.toFixed(1)} tC/ha (${h09.toFixed(1)} m)</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between;">
+              <span style="color:#94a3b8;">2020:</span>
+              <strong style="color:${d20 === 0 ? '#f87171' : '#34d399'};">${d20.toFixed(1)} tC/ha (${h20.toFixed(1)} m)</strong>
             </div>
           </div>
         `;

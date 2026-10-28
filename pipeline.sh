@@ -34,7 +34,10 @@ usage() {
     echo "             (Set NFI_PATH environment variable if NFI file is in a custom path)"
     echo ""
     echo "  compare      Compare carbon storage across 2 survey dates (e.g. ./pipeline.sh compare 2009 2020)
-  process-year Download, grid, and calculate carbon for an entire year (e.g. ./pipeline.sh process-year 2009)"
+  process-year Download, grid, and calculate carbon for a single year (e.g. ./pipeline.sh process-year 2009)
+  epoch-run    Download, grid, and calculate an entire survey epoch (baseline, midterm, recent)
+  epoch-build  Assemble all available survey epochs into the composite PMTiles pyramid
+"
     echo ""
     echo "  normalize  (Optional/Legacy) Export pre-normalised LAZ files using PDAL TIN Delaunay"
     echo ""
@@ -134,6 +137,51 @@ case "$cmd" in
         echo "======================================================="
         echo " Finished! Multi-temporal PMTiles updated in docs/ and output/"
         echo "======================================================="
+        ;;
+
+    epoch-run)
+        EPOCH="${1:-baseline}"
+        shift || true
+        echo "======================================================="
+        echo " Running Master Pipeline for Survey Epoch: $EPOCH"
+        echo "======================================================="
+        EPOCH_RAW="$DATA_DIR/raw/$EPOCH"
+        EPOCH_OUT="$OUTPUT_DIR/$EPOCH"
+        mkdir -p "$EPOCH_RAW" "$EPOCH_OUT"
+
+        echo "--- [1/3] Downloading $EPOCH LiDAR Tiles from Defra ---"
+        python3 "$PROJECT_DIR/download_lidar.py" --epoch "$EPOCH" -o "$EPOCH_RAW" -t 4 "$@"
+
+        echo "--- [2/3] Running Rust Fast Grid Processor ($EPOCH) ---"
+        "$PROJECT_DIR/target/release/carbon_lidar" \
+            --input "$EPOCH_RAW" \
+            --output-dir "$EPOCH_OUT" \
+            --grid-size "$GRID_SIZE" \
+            --threads "$THREADS" \
+            --combine-master
+
+        echo "--- [3/3] Calculating Carbon Stocks with NFI Mask ---"
+        if [ ! -f "$NFI_FILE" ]; then
+            echo "Fetching official Forestry Commission NFI dataset for the Lake District..."
+            python3 "$PROJECT_DIR/download_nfi.py" -o "$NFI_FILE"
+        fi
+        python3 "$PROJECT_DIR/calculate_carbon.py" \
+            --csv "$EPOCH_OUT/master_volume_grid.csv" \
+            --nfi "$NFI_FILE" \
+            --output-prefix "$OUTPUT_DIR/lake_district_carbon_${EPOCH}" \
+            --grid-size "$GRID_SIZE" \
+            --boundary "$PROJECT_DIR/docs/lake_district_boundary.geojson"
+
+        echo "--- Building Composite Vector Tiles ---"
+        python3 "$PROJECT_DIR/build_composite.py"
+        echo "======================================================="
+        echo " Finished Epoch $EPOCH! Vector tiles updated in docs/"
+        echo "======================================================="
+        ;;
+
+    epoch-build)
+        echo "=== Compiling Multi-Epoch Composite Vector Pyramid ==="
+        python3 "$PROJECT_DIR/build_composite.py"
         ;;
 
     all)

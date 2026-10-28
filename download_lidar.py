@@ -271,6 +271,13 @@ def main():
         help="Target survey year to download (e.g. 2009, 2013, 2017, 2020)"
     )
     parser.add_argument(
+        "--epoch",
+        type=str,
+        choices=["baseline", "midterm", "modern", "recent"],
+        default=None,
+        help="Target survey epoch: baseline (2008-2010), midterm (2013-2017), modern (2019-2021), recent (2022-2024)"
+    )
+    parser.add_argument(
         "--list-years",
         action="store_true",
         help="List all available survey years and tile counts across Lake District"
@@ -329,7 +336,20 @@ def main():
         print("  ./pipeline.sh download --year 2009")
         return
 
-    if args.year:
+    EPOCH_DEFS = {
+        "baseline": ["2008", "2009", "2010"],
+        "midterm": ["2013", "2014", "2016", "2017"],
+        "modern": ["2019", "2020", "2021"],
+        "recent": ["2022", "2023", "2024"]
+    }
+
+    if args.epoch:
+        target_years = set(EPOCH_DEFS[args.epoch])
+        tiles = [t for t in tiles if str(t.get("year", {}).get("id")) in target_years]
+        tiles = deduplicate_tiles(tiles)
+        if args.output_dir.rstrip("/").endswith("data/raw"):
+            args.output_dir = os.path.join(args.output_dir, args.epoch)
+    elif args.year:
         target_y = str(args.year)
         tiles = [t for t in tiles if str(t.get("year", {}).get("id")) == target_y]
         if args.output_dir.rstrip("/").endswith("data/raw"):

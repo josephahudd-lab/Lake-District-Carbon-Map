@@ -414,7 +414,7 @@
     const t2PaintColor = [
       'interpolate',
       ['linear'],
-      ['get', 'd2'],
+      ['coalesce', ['get', 'dn'], ['get', 'd2']],
       0, '#86efac',
       30, '#34d399',
       60, '#10b981',
@@ -426,7 +426,7 @@
     const t1PaintColor = [
       'interpolate',
       ['linear'],
-      ['get', 'd1'],
+      ['coalesce', ['get', 'db'], ['get', 'd1']],
       0, '#86efac',
       30, '#34d399',
       60, '#10b981',
@@ -606,6 +606,42 @@
       }
     }
 
+    function renderTimelineSparkline(tlStr) {
+      if (!tlStr) return '';
+      const pts = tlStr.split('|').map(s => {
+        const parts = s.split(':');
+        return { yr: `'${parts[0]}`, h: parseFloat(parts[1]) };
+      });
+      if (pts.length < 2) return '';
+      const maxH = Math.max(...pts.map(p => p.h), 15);
+      const w = 210, h = 34;
+      const barW = Math.max(12, Math.floor(w / (pts.length * 2.2)));
+      let bars = '';
+      pts.forEach((p, idx) => {
+        const x = 18 + idx * Math.floor((w - 36) / (pts.length - 1 || 1));
+        const barHeight = Math.max(4, Math.round((p.h / maxH) * (h - 12)));
+        const y = h - barHeight - 2;
+        const isLatest = idx === pts.length - 1;
+        const color = isLatest ? '#10b981' : '#38bdf8';
+        bars += `
+          <rect x="${x - barW/2}" y="${y}" width="${barW}" height="${barHeight}" rx="2" fill="${color}" opacity="0.85"/>
+          <text x="${x}" y="${h + 9}" font-size="9" fill="#94a3b8" text-anchor="middle">${p.yr}</text>
+          <text x="${x}" y="${y - 2}" font-size="9" fill="#f8fafc" text-anchor="middle" font-weight="bold">${p.h}m</text>
+        `;
+      });
+      return `
+        <div style="margin-top: 8px; padding-top: 6px; border-top: 1px dashed rgba(51, 65, 85, 0.7);">
+          <div style="font-size: 10px; color: #94a3b8; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.5px; display:flex; justify-content:space-between;">
+            <span>Canopy Height History</span>
+            <span style="color:#10b981; font-weight:bold;">${pts[0].yr} ➔ ${pts[pts.length-1].yr}</span>
+          </div>
+          <svg width="100%" height="46" viewBox="0 0 ${w} 46" style="overflow: visible;">
+            ${bars}
+          </svg>
+        </div>
+      `;
+    }
+
     const popup = new maplibregl.Popup({
       closeButton: false,
       closeOnClick: false
@@ -622,8 +658,13 @@
       map.getCanvas().style.cursor = 'pointer';
       if (e.features.length > 0) {
         const p = e.features[0].properties;
-        const y1 = document.getElementById('select-t1').value;
-        const y2 = document.getElementById('select-t2').value;
+        const y1 = p.yb || document.getElementById('select-t1').value;
+        const y2 = p.yn || document.getElementById('select-t2').value;
+
+        const curDens = p.dn !== undefined ? p.dn : p.d2;
+        const curC = p.cn !== undefined ? p.cn : p.c2;
+        const baseDens = p.db !== undefined ? p.db : p.d1;
+        const baseC = p.cb !== undefined ? p.cb : p.c1;
 
         let badgeHtml = '';
         let deltaColor = '#34d399';
@@ -642,12 +683,16 @@
         const deltaPrefix = p.dc > 0 ? '+' : '';
         const dhPrefix = p.dh > 0 ? '+' : '';
         const ddPrefix = p.dd > 0 ? '+' : '';
+        const sparklineHtml = renderTimelineSparkline(p.tl);
 
         popup.setLngLat(e.lngLat)
           .setHTML(`
             <div style="min-width: 220px;">
               <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid #334155; padding-bottom: 4px; margin-bottom: 6px;">
-                <strong style="color: #38bdf8; font-size: 13px;">${p.type || 'Woodland'}</strong>
+                <div>
+                  <strong style="color: #38bdf8; font-size: 13px;">${p.type || 'Woodland'}</strong>
+                  <span style="font-size:10px; color:#94a3b8; margin-left:4px;">(Surveyed: ${y2})</span>
+                </div>
                 ${badgeHtml}
               </div>
               <div style="font-size: 12px; line-height: 1.6; color: #cbd5e1;">
@@ -657,13 +702,15 @@
                 <div style="margin-top: 8px; padding-top: 6px; border-top: 1px dashed rgba(51, 65, 85, 0.7); font-size: 11px; color: #94a3b8;">
                   <div style="display:flex; justify-content:space-between;">
                     <span>${y1} Baseline:</span>
-                    <strong style="color:#f8fafc;">${p.d1} tC/ha</strong> <span>(${p.c1} tC)</span>
+                    <strong style="color:#f8fafc;">${baseDens} tC/ha</strong> <span>(${baseC} tC)</span>
                   </div>
                   <div style="display:flex; justify-content:space-between; margin-top:2px;">
-                    <span>${y2} Comparison:</span>
-                    <strong style="color:#f8fafc;">${p.d2} tC/ha</strong> <span>(${p.c2} tC)</span>
+                    <span>${y2} Most Recent:</span>
+                    <strong style="color:#34d399;">${curDens} tC/ha</strong> <span>(${curC} tC)</span>
                   </div>
                 </div>
+
+                ${sparklineHtml}
               </div>
             </div>
           `)

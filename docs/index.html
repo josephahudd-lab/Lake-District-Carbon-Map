@@ -185,16 +185,10 @@
       background: linear-gradient(to right, #dc2626 0%, #ef4444 22%, #fca5a5 40%, rgba(148, 163, 184, 0.75) 48%, rgba(148, 163, 184, 0.75) 52%, #86efac 62%, #10b981 80%, #047857 100%);
       margin-bottom: 6px;
     }
-    .legend-bar-2020 {
+    .legend-bar-density {
       height: 10px;
       border-radius: 5px;
       background: linear-gradient(to right, #a7f3d0, #34d399, #10b981, #059669, #047857, #f59e0b);
-      margin-bottom: 6px;
-    }
-    .legend-bar-2009 {
-      height: 10px;
-      border-radius: 5px;
-      background: linear-gradient(to right, #fde68a, #fbbf24, #84cc16, #10b981, #059669, #065f46);
       margin-bottom: 6px;
     }
     .legend-labels {
@@ -422,29 +416,18 @@
             35,  '#047857'
           ]
         ];
-      } else if (mode === 't2') {
+      } else {
+        const prop = (mode === 't2') ? 'd20' : 'd09';
         return [
           'interpolate',
           ['linear'],
-          ['coalesce', ['get', 'd20'], 0],
-          1,   '#a7f3d0',
-          20,  '#34d399',
-          40,  '#10b981',
-          65,  '#059669',
-          95,  '#047857',
-          130, '#f59e0b'
-        ];
-      } else if (mode === 't1') {
-        return [
-          'interpolate',
-          ['linear'],
-          ['coalesce', ['get', 'd09'], 0],
-          1,   '#fde68a',
-          15,  '#fbbf24',
-          30,  '#84cc16',
+          ['coalesce', ['get', prop], 0],
+          0,   '#a7f3d0',
+          25,  '#34d399',
           50,  '#10b981',
-          80,  '#059669',
-          120, '#065f46'
+          75,  '#059669',
+          100, '#047857',
+          130, '#f59e0b'
         ];
       }
     }
@@ -552,18 +535,12 @@
         lUnit.innerText = 'Δ tC / ha';
         lUnit.style.color = '#34d399';
         lLabels.innerHTML = '<span style="color:#f87171;">-35</span><span style="color:#94a3b8;">0</span><span style="color:#34d399;">+35+</span>';
-      } else if (mode === 't2') {
-        bar.className = 'legend-bar-2020';
-        lTitle.innerText = '2020 Carbon Density';
+      } else {
+        bar.className = 'legend-bar-density';
+        lTitle.innerText = (mode === 't2') ? '2020 Carbon Density' : '2009 Carbon Density';
         lUnit.innerText = 'tC / ha';
         lUnit.style.color = '#34d399';
-        lLabels.innerHTML = '<span>1</span><span>25</span><span>50</span><span>75</span><span>100</span><span>130+</span>';
-      } else if (mode === 't1') {
-        bar.className = 'legend-bar-2009';
-        lTitle.innerText = '2009 Carbon Density';
-        lUnit.innerText = 'tC / ha';
-        lUnit.style.color = '#fbbf24';
-        lLabels.innerHTML = '<span>1</span><span>20</span><span>40</span><span>65</span><span>90</span><span>120+</span>';
+        lLabels.innerHTML = '<span>0</span><span>25</span><span>50</span><span>75</span><span>100</span><span>130+</span>';
       }
 
       document.getElementById('label-stat-1').innerText = cfg.stat1_label;

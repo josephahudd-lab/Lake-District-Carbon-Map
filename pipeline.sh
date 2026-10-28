@@ -122,6 +122,8 @@ case "$cmd" in
             --input "$YEAR_RAW" \
             --output-dir "$YEAR_OUT" \
             --grid-size "$GRID_SIZE" \
+            --min-permeability 0.0 \
+            --min-veg-points 4 \
             --threads "$THREADS" \
             --combine-master
 

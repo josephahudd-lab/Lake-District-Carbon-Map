@@ -254,20 +254,23 @@ def build_composite_pyramid():
 
             props = {
                 "type": wtype,
-                "cn": round(cn, 2),
+                "d09": round(db, 1),
+                "d20": round(m_rec["d"], 1),
                 "dn": round(dn, 1),
-                "hn": round(hn, 1),
-                "yn": yn,
-                "cb": round(cb, 2),
                 "db": round(db, 1),
-                "hb": round(hb, 1),
-                "yb": yb,
-                "dc": dc,
                 "dd": dd,
                 "dh": dh,
+                "hn": round(hn, 1),
+                "hb": round(hb, 1),
                 "st": status,
-                "tl": tl_str
+                "tl": tl_str,
+                "yb": yb,
+                "yn": yn
             }
+            if (cx, cy) in midterm_data:
+                props["d17"] = round(midterm_data[(cx, cy)]["d"], 1)
+            if (cx, cy) in recent_data:
+                props["d24"] = round(recent_data[(cx, cy)]["d"], 1)
 
             items_batch.append({"cx": cx, "cy": cy, "props": props})
             if len(items_batch) >= BATCH_SIZE:

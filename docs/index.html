@@ -309,16 +309,17 @@
       <div class="temporal-group">
         <label class="temporal-label">Baseline (T₁)</label>
         <select id="select-t1" class="date-select" onchange="onDateChanged()">
-          <option value="2009" selected>2009 Baseline</option>
-          <option value="2013">2013 Survey</option>
-          <option value="2017">2017 Pre-NLP</option>
+          <option value="2009" selected>2009 Baseline Survey</option>
+          <option value="2017">2017 Midterm Monitoring</option>
+          <option value="2020">2020 Modern National LiDAR</option>
         </select>
       </div>
       <div class="date-arrow">➔</div>
       <div class="temporal-group">
         <label class="temporal-label">Compare (T₂)</label>
         <select id="select-t2" class="date-select" onchange="onDateChanged()">
-          <option value="2020" selected>2020 National LiDAR</option>
+          <option value="2017">2017 Midterm Monitoring</option>
+          <option value="2020" selected>2020 Modern National LiDAR</option>
           <option value="2024">2024 Repeat Survey</option>
         </select>
       </div>
@@ -397,43 +398,99 @@
     const protocol = new pmtiles.Protocol();
     maplibregl.addProtocol("pmtiles", protocol.tile);
 
-    // Color Ramps
-    const deltaPaintColor = [
-      'interpolate',
-      ['linear'],
-      ['get', 'dd'],
-      -40, '#dc2626', // Deep red felling/loss
-      -20, '#ef4444', // Red
-      -5, '#fca5a5',  // Light red
-      0, 'rgba(148, 163, 184, 0.45)', // Stable neutral slate
-      5, '#86efac',   // Light green (growth)
-      20, '#10b981',  // Emerald green
-      40, '#064e3b'   // Forest cyan-green (high sequestration)
-    ];
+    // Multi-Epoch Aggregated Dataset Statistics
+    const PAIR_STATS = {
+      '2009_2020': {
+        net_c: '+193,106', pct: '+29.3%', co2e: '+708,120', ann: '+17,555',
+        growth: '21.5k ha', loss: '809 ha', note: 'Decadal Full-Park Survey (22.5k ha)'
+      },
+      '2009_2024': {
+        net_c: '+24,274', pct: '+60.4%', co2e: '+89,014', ann: '+1,618',
+        growth: '1,317 ha', loss: '78 ha', note: '15-Year Repeat Survey (1.4k ha)'
+      },
+      '2009_2017': {
+        net_c: '+94,433', pct: '+39.5%', co2e: '+346,285', ann: '+11,804',
+        growth: '6.9k ha', loss: '933 ha', note: 'Midterm Monitoring Swath (8.0k ha)'
+      },
+      '2017_2020': {
+        net_c: '-26,974', pct: '-7.9%', co2e: '-98,913', ann: '-8,991',
+        growth: '2,580 ha', loss: '5,468 ha', note: 'Midterm to National LiDAR Overlap (8.2k ha)'
+      },
+      '2017_2024': {
+        net_c: '+6,191', pct: '+10.8%', co2e: '+22,702', ann: '+884',
+        growth: '833 ha', loss: '501 ha', note: 'Midterm to Repeat Overlap (1.4k ha)'
+      },
+      '2020_2024': {
+        net_c: '+12,864', pct: '+23.9%', co2e: '+47,171', ann: '+3,216',
+        growth: '1,258 ha', loss: '165 ha', note: 'Recent Flights Overlap (1.4k ha)'
+      }
+    };
 
-    const t2PaintColor = [
-      'interpolate',
-      ['linear'],
-      ['coalesce', ['get', 'dn'], ['get', 'd2']],
-      0, '#86efac',
-      30, '#34d399',
-      60, '#10b981',
-      90, '#059669',
-      120, '#047857',
-      150, '#f59e0b'
-    ];
+    const SINGLE_STATS = {
+      '2009': {
+        total_c: '658,717', co2e: '2,415,516', area: '22,461 ha', density: '29.3',
+        label: 'Historical Baseline (2009)'
+      },
+      '2017': {
+        total_c: '346,100', co2e: '1,269,149', area: '8,296 ha', density: '41.7',
+        label: 'Midterm Survey Swath (2017)'
+      },
+      '2020': {
+        total_c: '878,105', co2e: '3,220,010', area: '23,153 ha', density: '37.9',
+        label: 'Modern National LiDAR (2020)'
+      },
+      '2024': {
+        total_c: '66,742', co2e: '244,744', area: '1,457 ha', density: '45.8',
+        label: 'Recent Repeat Flights (2024)'
+      }
+    };
 
-    const t1PaintColor = [
-      'interpolate',
-      ['linear'],
-      ['coalesce', ['get', 'db'], ['get', 'd1']],
-      0, '#86efac',
-      30, '#34d399',
-      60, '#10b981',
-      90, '#059669',
-      120, '#047857',
-      150, '#f59e0b'
-    ];
+    function getPaintExpression(mode, y1, y2) {
+      const p1 = 'd' + y1.slice(-2);
+      const p2 = 'd' + y2.slice(-2);
+
+      if (mode === 'delta') {
+        return [
+          'interpolate',
+          ['linear'],
+          ['-',
+            ['coalesce', ['get', p2], ['get', 'd20'], 0],
+            ['coalesce', ['get', p1], ['get', 'd09'], 0]
+          ],
+          -40, '#dc2626', // Deep red felling/loss
+          -20, '#ef4444', // Red
+          -5, '#fca5a5',  // Light red
+          0, 'rgba(148, 163, 184, 0.45)', // Stable neutral slate
+          5, '#86efac',   // Light green (growth)
+          20, '#10b981',  // Emerald green
+          40, '#064e3b'   // Forest cyan-green (high sequestration)
+        ];
+      } else if (mode === 't2') {
+        return [
+          'interpolate',
+          ['linear'],
+          ['coalesce', ['get', p2], ['get', 'd20'], 0],
+          0, '#86efac',
+          30, '#34d399',
+          60, '#10b981',
+          90, '#059669',
+          120, '#047857',
+          150, '#f59e0b'
+        ];
+      } else if (mode === 't1') {
+        return [
+          'interpolate',
+          ['linear'],
+          ['coalesce', ['get', p1], ['get', 'd09'], 0],
+          0, '#86efac',
+          30, '#34d399',
+          60, '#10b981',
+          90, '#059669',
+          120, '#047857',
+          150, '#f59e0b'
+        ];
+      }
+    }
 
     const map = new maplibregl.Map({
       container: 'map',
@@ -467,7 +524,7 @@
             source: 'carbon_source',
             'source-layer': 'carbon_temporal',
             paint: {
-              'fill-color': deltaPaintColor,
+              'fill-color': getPaintExpression('delta', '2009', '2020'),
               'fill-opacity': 0.85
             }
           },
@@ -503,6 +560,15 @@
     map.addControl(new maplibregl.NavigationControl(), 'top-right');
     map.addControl(new maplibregl.ScaleControl({ maxWidth: 100, unit: 'metric' }), 'bottom-left');
 
+    function updateMapPaint() {
+      const y1 = document.getElementById('select-t1').value;
+      const y2 = document.getElementById('select-t2').value;
+      const expr = getPaintExpression(currentMode, y1, y2);
+      if (map.getLayer('carbon-squares-fill')) {
+        map.setPaintProperty('carbon-squares-fill', 'fill-color', expr);
+      }
+    }
+
     function setMode(mode) {
       currentMode = mode;
       document.getElementById('btn-delta').classList.toggle('active', mode === 'delta');
@@ -512,34 +578,30 @@
       const y1 = document.getElementById('select-t1').value;
       const y2 = document.getElementById('select-t2').value;
 
-      const fill = map.getLayer('carbon-squares-fill');
       const bar = document.getElementById('legend-bar');
       const lTitle = document.getElementById('legend-title-text');
       const lUnit = document.getElementById('legend-unit-text');
       const lLabels = document.getElementById('legend-labels');
 
       if (mode === 'delta') {
-        if (fill) map.setPaintProperty('carbon-squares-fill', 'fill-color', deltaPaintColor);
         bar.className = 'legend-bar-delta';
         lTitle.innerText = `Net Change (${y1} ➔ ${y2})`;
         lUnit.innerText = 'Δ tC / ha';
         lLabels.innerHTML = '<span style="color:#ef4444;">-30 (Loss)</span><span style="color:#94a3b8;">0 (Stable)</span><span style="color:#10b981;">+30+ (Growth)</span>';
-        updateStatsView('delta');
       } else if (mode === 't2') {
-        if (fill) map.setPaintProperty('carbon-squares-fill', 'fill-color', t2PaintColor);
         bar.className = 'legend-bar-density';
         lTitle.innerText = `${y2} Carbon Stock`;
         lUnit.innerText = 'tC / ha';
         lLabels.innerHTML = '<span>0.1</span><span>30</span><span>60</span><span>90</span><span>120</span><span>150+</span>';
-        updateStatsView('t2');
       } else if (mode === 't1') {
-        if (fill) map.setPaintProperty('carbon-squares-fill', 'fill-color', t1PaintColor);
         bar.className = 'legend-bar-density';
         lTitle.innerText = `${y1} Carbon Stock`;
         lUnit.innerText = 'tC / ha';
         lLabels.innerHTML = '<span>0.1</span><span>30</span><span>60</span><span>90</span><span>120</span><span>150+</span>';
-        updateStatsView('t1');
       }
+
+      updateMapPaint();
+      updateStatsView(mode);
     }
 
     function updateStatsView(mode) {
@@ -547,53 +609,91 @@
       const y2 = document.getElementById('select-t2').value;
 
       if (mode === 'delta') {
-        document.getElementById('label-stat-1').innerText = 'Net Carbon Change';
-        document.getElementById('val-stat-1').innerHTML = '+219,388 <span style="font-size:11px; font-weight:normal;">tC (+33%)</span>';
-        document.getElementById('val-stat-1').style.color = '#34d399';
+        const pairKey = `${y1}_${y2}`;
+        const st = PAIR_STATS[pairKey] || {
+          net_c: '--', pct: '--', co2e: '--', ann: '--', growth: '--', loss: '--'
+        };
+
+        const isPositive = !st.net_c.startsWith('-');
+        const cColor = isPositive ? '#34d399' : '#f87171';
+
+        document.getElementById('label-stat-1').innerText = `Net Carbon Change (${y1}➔${y2})`;
+        document.getElementById('val-stat-1').innerHTML = `${st.net_c} <span style="font-size:11px; font-weight:normal;">tC (${st.pct})</span>`;
+        document.getElementById('val-stat-1').style.color = cColor;
 
         document.getElementById('label-stat-2').innerText = 'Net CO₂ Sequestered';
-        document.getElementById('val-stat-2').innerHTML = '+804,421 <span style="font-size:11px; font-weight:normal;">tCO₂e</span>';
+        document.getElementById('val-stat-2').innerHTML = `${st.co2e} <span style="font-size:11px; font-weight:normal;">tCO₂e</span>`;
 
         document.getElementById('label-stat-3').innerText = 'Annual Sequestration';
-        document.getElementById('val-stat-3').innerHTML = '+19,944 <span style="font-size:11px; font-weight:normal;">tC/yr</span>';
+        document.getElementById('val-stat-3').innerHTML = `${st.ann} <span style="font-size:11px; font-weight:normal;">tC/yr</span>`;
 
         document.getElementById('label-stat-4').innerText = 'Canopy Growth vs Loss';
-        document.getElementById('val-stat-4').innerHTML = '<span style="color:#10b981;">▲ 19.5k ha</span> <span style="color:#ef4444; margin-left:6px;">▼ 727 ha</span>';
+        document.getElementById('val-stat-4').innerHTML = `<span style="color:#10b981;">▲ ${st.growth}</span> <span style="color:#ef4444; margin-left:6px;">▼ ${st.loss}</span>`;
       } else if (mode === 't2') {
+        const st = SINGLE_STATS[y2] || SINGLE_STATS['2020'];
+
         document.getElementById('label-stat-1').innerText = `Total Stored Carbon (${y2})`;
-        document.getElementById('val-stat-1').innerHTML = '878,105 <span style="font-size:11px; font-weight:normal;">tC</span>';
+        document.getElementById('val-stat-1').innerHTML = `${st.total_c} <span style="font-size:11px; font-weight:normal;">tC</span>`;
         document.getElementById('val-stat-1').style.color = '#10b981';
 
         document.getElementById('label-stat-2').innerText = `CO₂ Equivalent (${y2})`;
-        document.getElementById('val-stat-2').innerHTML = '3,219,717 <span style="font-size:11px; font-weight:normal;">tCO₂e</span>';
+        document.getElementById('val-stat-2').innerHTML = `${st.co2e} <span style="font-size:11px; font-weight:normal;">tCO₂e</span>`;
 
-        document.getElementById('label-stat-3').innerText = `Park Canopy Area (${y2})`;
-        document.getElementById('val-stat-3').innerHTML = '23,153 <span style="font-size:11px; font-weight:normal;">ha</span>';
+        document.getElementById('label-stat-3').innerText = `Survey Canopy Area (${y2})`;
+        document.getElementById('val-stat-3').innerHTML = `${st.area}`;
 
         document.getElementById('label-stat-4').innerText = `Mean Density (${y2})`;
-        document.getElementById('val-stat-4').innerHTML = '37.9 <span style="font-size:11px; font-weight:normal;">tC/ha</span>';
+        document.getElementById('val-stat-4').innerHTML = `${st.density} <span style="font-size:11px; font-weight:normal;">tC/ha</span>`;
       } else if (mode === 't1') {
+        const st = SINGLE_STATS[y1] || SINGLE_STATS['2009'];
+
         document.getElementById('label-stat-1').innerText = `Total Stored Carbon (${y1})`;
-        document.getElementById('val-stat-1').innerHTML = '658,717 <span style="font-size:11px; font-weight:normal;">tC</span>';
+        document.getElementById('val-stat-1').innerHTML = `${st.total_c} <span style="font-size:11px; font-weight:normal;">tC</span>`;
         document.getElementById('val-stat-1').style.color = '#fbbf24';
 
         document.getElementById('label-stat-2').innerText = `CO₂ Equivalent (${y1})`;
-        document.getElementById('val-stat-2').innerHTML = '2,415,516 <span style="font-size:11px; font-weight:normal;">tCO₂e</span>';
+        document.getElementById('val-stat-2').innerHTML = `${st.co2e} <span style="font-size:11px; font-weight:normal;">tCO₂e</span>`;
 
-        document.getElementById('label-stat-3').innerText = `Park Canopy Area (${y1})`;
-        document.getElementById('val-stat-3').innerHTML = '22,461 <span style="font-size:11px; font-weight:normal;">ha</span>';
+        document.getElementById('label-stat-3').innerText = `Survey Canopy Area (${y1})`;
+        document.getElementById('val-stat-3').innerHTML = `${st.area}`;
 
         document.getElementById('label-stat-4').innerText = `Mean Density (${y1})`;
-        document.getElementById('val-stat-4').innerHTML = '29.3 <span style="font-size:11px; font-weight:normal;">tC/ha</span>';
+        document.getElementById('val-stat-4').innerHTML = `${st.density} <span style="font-size:11px; font-weight:normal;">tC/ha</span>`;
       }
     }
 
     function onDateChanged() {
-      const y1 = document.getElementById('select-t1').value;
-      const y2 = document.getElementById('select-t2').value;
+      let y1 = document.getElementById('select-t1').value;
+      let y2 = document.getElementById('select-t2').value;
+
+      // Maintain valid temporal order
+      if (parseInt(y1) >= parseInt(y2)) {
+        if (y1 === '2020') {
+          document.getElementById('select-t2').value = '2024';
+          y2 = '2024';
+        } else if (y1 === '2017') {
+          document.getElementById('select-t2').value = '2020';
+          y2 = '2020';
+        } else {
+          document.getElementById('select-t2').value = '2020';
+          y2 = '2020';
+        }
+      }
+
       document.getElementById('btn-t1').innerText = `🌲 ${y1} Stock`;
       document.getElementById('btn-t2').innerText = `🌲 ${y2} Stock`;
-      setMode(currentMode);
+
+      const lTitle = document.getElementById('legend-title-text');
+      if (currentMode === 'delta') {
+        lTitle.innerText = `Net Change (${y1} ➔ ${y2})`;
+      } else if (currentMode === 't2') {
+        lTitle.innerText = `${y2} Carbon Stock`;
+      } else if (currentMode === 't1') {
+        lTitle.innerText = `${y1} Carbon Stock`;
+      }
+
+      updateMapPaint();
+      updateStatsView(currentMode);
     }
 
     function toggleLayer(type, visible) {
@@ -658,55 +758,75 @@
       map.getCanvas().style.cursor = 'pointer';
       if (e.features.length > 0) {
         const p = e.features[0].properties;
-        const y1 = p.yb || document.getElementById('select-t1').value;
-        const y2 = p.yn || document.getElementById('select-t2').value;
+        const y1 = document.getElementById('select-t1').value;
+        const y2 = document.getElementById('select-t2').value;
+        const p1 = 'd' + y1.slice(-2);
+        const p2 = 'd' + y2.slice(-2);
 
-        const curDens = p.dn !== undefined ? p.dn : p.d2;
-        const curC = p.cn !== undefined ? p.cn : p.c2;
-        const baseDens = p.db !== undefined ? p.db : p.d1;
-        const baseC = p.cb !== undefined ? p.cb : p.c1;
+        // Density observations for selected years
+        const d1 = p[p1] !== undefined ? p[p1] : (y1 === '2009' ? (p.d09 !== undefined ? p.d09 : p.db) : null);
+        const d2 = p[p2] !== undefined ? p[p2] : (y2 === '2020' ? (p.d20 !== undefined ? p.d20 : p.dn) : (y2 === '2024' ? p.d24 : null));
+
+        const has1 = d1 !== null && d1 !== undefined;
+        const has2 = d2 !== null && d2 !== undefined;
+
+        const effD1 = has1 ? d1 : (p.d09 !== undefined ? p.d09 : p.db);
+        const effD2 = has2 ? d2 : (p.d20 !== undefined ? p.d20 : p.dn);
+
+        const deltaDens = (effD2 - effD1).toFixed(1);
+        const deltaTonnes = (deltaDens * 0.04).toFixed(2);
+        const deltaTonnesPrefix = deltaTonnes > 0 ? '+' : '';
+        const deltaDensPrefix = deltaDens > 0 ? '+' : '';
+        const pct = effD1 > 0 ? (((effD2 - effD1) / effD1) * 100).toFixed(1) : '0.0';
+        const pctPrefix = pct > 0 ? '+' : '';
 
         let badgeHtml = '';
         let deltaColor = '#34d399';
 
-        if (p.st === 'gain' || p.st === 'new') {
-          badgeHtml = `<span class="badge-gain">▲ GROWTH</span>`;
+        if (!has2 && y2 === '2024') {
+          badgeHtml = `<span class="badge-stable">● NOT REFLOWN IN '24</span>`;
+          deltaColor = '#94a3b8';
+        } else if (!has1 && y1 === '2017') {
+          badgeHtml = `<span class="badge-stable">● NO '17 FLIGHT</span>`;
+          deltaColor = '#94a3b8';
+        } else if (parseFloat(deltaDens) > 0.5) {
+          badgeHtml = `<span class="badge-gain">▲ GROWTH (${pctPrefix}${pct}%)</span>`;
           deltaColor = '#34d399';
-        } else if (p.st === 'loss') {
-          badgeHtml = `<span class="badge-loss">▼ LOSS / FELLED</span>`;
+        } else if (parseFloat(deltaDens) < -0.5) {
+          badgeHtml = `<span class="badge-loss">▼ LOSS / FELLED (${pctPrefix}${pct}%)</span>`;
           deltaColor = '#f87171';
         } else {
           badgeHtml = `<span class="badge-stable">● STABLE</span>`;
           deltaColor = '#94a3b8';
         }
 
-        const deltaPrefix = p.dc > 0 ? '+' : '';
+        const c1Val = (effD1 * 0.04).toFixed(2);
+        const c2Val = (effD2 * 0.04).toFixed(2);
         const dhPrefix = p.dh > 0 ? '+' : '';
-        const ddPrefix = p.dd > 0 ? '+' : '';
         const sparklineHtml = renderTimelineSparkline(p.tl);
 
         popup.setLngLat(e.lngLat)
           .setHTML(`
-            <div style="min-width: 220px;">
+            <div style="min-width: 230px;">
               <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid #334155; padding-bottom: 4px; margin-bottom: 6px;">
                 <div>
                   <strong style="color: #38bdf8; font-size: 13px;">${p.type || 'Woodland'}</strong>
-                  <span style="font-size:10px; color:#94a3b8; margin-left:4px;">(Surveyed: ${y2})</span>
+                  <span style="font-size:10px; color:#94a3b8; margin-left:4px;">(${y1} ➔ ${y2})</span>
                 </div>
                 ${badgeHtml}
               </div>
               <div style="font-size: 12px; line-height: 1.6; color: #cbd5e1;">
-                <div><strong>Net Carbon Delta:</strong> <span style="color:${deltaColor}; font-weight:bold;">${deltaPrefix}${p.dc} tC</span> (${ddPrefix}${p.dd} tC/ha)</div>
+                <div><strong>Net Carbon Delta:</strong> <span style="color:${deltaColor}; font-weight:bold;">${deltaTonnesPrefix}${deltaTonnes} tC</span> (${deltaDensPrefix}${deltaDens} tC/ha)</div>
                 <div><strong>Height Growth (Δh90):</strong> <span style="color:#38bdf8; font-weight:bold;">${dhPrefix}${p.dh} m</span></div>
                 
                 <div style="margin-top: 8px; padding-top: 6px; border-top: 1px dashed rgba(51, 65, 85, 0.7); font-size: 11px; color: #94a3b8;">
                   <div style="display:flex; justify-content:space-between;">
-                    <span>${y1} Baseline:</span>
-                    <strong style="color:#f8fafc;">${baseDens} tC/ha</strong> <span>(${baseC} tC)</span>
+                    <span>${y1} ${has1 ? 'Baseline' : '(Prior Base)'}:</span>
+                    <strong style="color:#f8fafc;">${effD1} tC/ha</strong> <span>(${c1Val} tC)</span>
                   </div>
                   <div style="display:flex; justify-content:space-between; margin-top:2px;">
-                    <span>${y2} Most Recent:</span>
-                    <strong style="color:#34d399;">${curDens} tC/ha</strong> <span>(${curC} tC)</span>
+                    <span>${y2} ${has2 ? 'Survey' : '(Latest: 2020)'}:</span>
+                    <strong style="color:#34d399;">${effD2} tC/ha</strong> <span>(${c2Val} tC)</span>
                   </div>
                 </div>
 
